@@ -11,6 +11,12 @@ import './style.css'
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY)
 
+const vibrate = (pattern = 50) => {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    try { navigator.vibrate(pattern) } catch(e) {}
+  }
+}
+
 const presets = [
   // Meyve & Sebze
   ['🍎','Elma','Meyve & Sebze'], ['🍌','Muz','Meyve & Sebze'], ['🍊','Portakal','Meyve & Sebze'],
@@ -164,9 +170,10 @@ function App() {
       .subscribe()
   }
 
-  async function addItem(preset) {
-    const productName = preset?.[1] || newItem.trim()
+  async function addItem(preset, directName = null) {
+    const productName = directName || preset?.[1] || newItem.trim()
     if (!productName || !house || busy) return
+    vibrate(40)
     const finalCategory = preset?.[2] || (cat === 'Diğer' ? smartCategory(productName) : cat)
     const optimisticId = `temp-${Date.now()}-${Math.random()}`
     const optimistic = {
@@ -195,6 +202,7 @@ function App() {
 
   async function toggle(item) {
     const nextBought = !item.is_bought
+    vibrate(nextBought ? [30, 50, 30] : 30)
     // Dokununca anında görsel olarak sepet/alındı durumuna geç.
     setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_bought: nextBought, bought_at: nextBought ? new Date().toISOString() : null } : i))
     const { error } = await supabase.from('shopping_items').update({ is_bought: nextBought, bought_at: nextBought ? new Date().toISOString() : null }).eq('id', item.id)
@@ -207,6 +215,7 @@ function App() {
   }
 
   async function remove(item) {
+    vibrate(50)
     setItems(prev => prev.filter(i => i.id !== item.id))
     const { error } = await supabase.from('shopping_items').delete().eq('id', item.id)
     if (error) {
@@ -220,6 +229,7 @@ function App() {
   async function clearBought() {
     const bought = items.filter(i => i.is_bought)
     if (!bought.length) return
+    vibrate([50, 100, 50])
     setItems(prev => prev.filter(i => !i.is_bought))
     const { error } = await supabase.from('shopping_items').delete().eq('household_id', house.id).eq('is_bought', true)
     if (error) { await loadItems(house.id); notify(error.message); return }
@@ -286,7 +296,7 @@ function App() {
 
         <div className="toolbar"><div className="searchbar"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Listede ara…" />{search && <button onClick={() => setSearch('')}><X size={16}/></button>}</div><button className="filter-button" onClick={() => setShowBought(v => !v)} aria-label="Filtrele"><SlidersHorizontal size={18}/></button></div>
         <div className="chips">{cats.map(c => { const Icon = c === 'Hepsi' ? ShoppingBasket : catIcons[c]; return <button key={c} className={filter === c ? 'chip active' : 'chip'} onClick={() => setFilter(c)}>{c !== 'Hepsi' && <Icon size={14}/>} {c}</button> })}</div>
-
+        <QuickAddInput onAdd={addItem} />
         <div className="section-head"><div><span className="section-title">Liste</span><span className="count">{visible.length}</span></div><button className="text-action" onClick={() => setShowBought(v => !v)}>{showBought ? 'Sepeti gizle' : bought.length ? `${bought.length} sepette` : 'Sepeti göster'}</button></div>
         <main>
           {visible.length === 0 ? <div className="empty"><div className="empty-icon"><PackagePlus size={28}/></div><h2>{search ? 'Bulamadım' : 'Liste boş'}</h2><p>{search ? 'Başka bir kelime dene.' : 'Eksilen bir şeyi + ile hemen ekle.'}</p><button className="empty-add" onClick={() => setAddOpen(true)}><Plus size={16}/> Ürün ekle</button></div> : <div className="groups">{Object.entries(grouped).map(([category, list]) => <section className="group" key={category}><div className="group-title"><span>{(() => { const I = catIcons[category] || ShoppingBasket; return <I size={16}/> })()}</span>{category}<i>{list.length}</i></div>{list.map(item => <Item key={item.id} item={item} toggle={toggle} remove={remove}/>)}</section>)}</div>}
@@ -304,11 +314,29 @@ function App() {
   </div>
 }
 
+function QuickAddInput({ onAdd }) {
+  const [val, setVal] = useState('')
+  const submit = (e) => {
+    e.preventDefault()
+    if (!val.trim()) return
+    onAdd(null, val.trim())
+    setVal('')
+  }
+  return <form className="quick-add-form" onSubmit={submit}>
+    <div className="quick-add-wrap">
+      <input placeholder="Ne lazım? (örn. Süt, Ekmek)" value={val} onChange={e => setVal(e.target.value)} />
+      <button type="submit" disabled={!val.trim()} aria-label="Ekle"><Plus size={18}/></button>
+    </div>
+  </form>
+}
+
 function Item({ item, toggle, remove }) {
   return <div className={`item ${item.is_bought ? 'bought' : ''} ${item.optimistic ? 'pending-sync' : ''}`}>
     <button className="check" onClick={() => toggle(item)} aria-label={item.is_bought ? 'Listeye geri al' : 'Sepete ekle'}>{item.is_bought && <Check size={17}/>}</button>
-    <span className="item-icon">{item.icon || '🛒'}</span>
-    <div className="item-info"><strong>{item.name}</strong><small>{item.quantity && item.quantity !== '1' ? `× ${item.quantity} · ` : ''}{item.category}</small></div>
+    <div className="item-body" onClick={() => toggle(item)} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, cursor: 'pointer' }}>
+      <span className="item-icon">{item.icon || '🛒'}</span>
+      <div className="item-info"><strong>{item.name}</strong><small>{item.quantity && item.quantity !== '1' ? `× ${item.quantity} · ` : ''}{item.category}</small></div>
+    </div>
     <button className="delete" onClick={() => remove(item)} aria-label="Ürünü sil"><Trash2 size={16}/></button>
   </div>
 }
