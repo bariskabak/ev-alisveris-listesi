@@ -1,69 +1,264 @@
-import React,{useEffect,useMemo,useRef,useState} from 'react'
-import {createRoot} from 'react-dom/client'
-import {createClient} from '@supabase/supabase-js'
-import {Plus,Check,Trash2,ShoppingBasket,Users,RefreshCw,Copy,ChevronRight,X,Search,House, Sparkles, CircleHelp, LogOut, Minus, MoreHorizontal} from 'lucide-react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { createRoot } from 'react-dom/client'
+import { createClient } from '@supabase/supabase-js'
+import {
+  Plus, Check, Trash2, ShoppingBasket, Users, Copy, ChevronRight, X,
+  Search, House, LogOut, Minus, SlidersHorizontal, Sparkles, CircleCheck,
+  PackagePlus, Utensils, Milk, Carrot, Beef, Wheat, SprayCan, Baby,
+  Droplets, Home as HomeIcon, RotateCcw, Share2
+} from 'lucide-react'
 import './style.css'
 
-const supabase=createClient(import.meta.env.VITE_SUPABASE_URL,import.meta.env.VITE_SUPABASE_ANON_KEY)
-const presets=[
- ['🍞','Ekmek','Temel'],['🥚','Yumurta','Kahvaltı'],['🥛','Süt','Süt ürünleri'],['🥤','Kefir','Süt ürünleri'],['🧀','Peynir','Süt ürünleri'],['🫒','Zeytinyağı','Kiler'],
- ['🍅','Domates','Manav'],['🥒','Salatalık','Manav'],['🍌','Muz','Manav'],['🍎','Elma','Manav'],['🥔','Patates','Manav'],['🧅','Soğan','Manav'],
- ['🍗','Tavuk','Et'],['🥩','Et','Et'],['🐟','Balık','Et'],['🍚','Pirinç','Kiler'],['🍝','Makarna','Kiler'],['🧂','Tuz','Kiler'],
- ['🧻','Tuvalet kağıdı','Ev'],['🧴','Deterjan','Ev'],['🧼','Sabun','Ev'],['🍼','Bebek ürünü','Bebek'],['💧','Su','İçecek'],['☕','Kahve','İçecek']
-]
-const cats=['Hepsi','Kahvaltı','Süt ürünleri','Manav','Et','Kiler','Ev','Bebek','İçecek','Temel','Diğer']
-const catIcons={Kahvaltı:'🍳','Süt ürünleri':'🥛',Manav:'🥬',Et:'🥩',Kiler:'🧺',Ev:'🧽',Bebek:'🍼',İçecek:'🥤',Temel:'🏠',Diğer:'🛒'}
+const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY)
 
-function App(){
- const [session,setSession]=useState(null),[items,setItems]=useState([]),[house,setHouse]=useState(null),[members,setMembers]=useState([]),[loading,setLoading]=useState(true)
- const [filter,setFilter]=useState('Hepsi'),[showBought,setShowBought]=useState(false),[search,setSearch]=useState(''),[view,setView]=useState('list')
- const [newItem,setNewItem]=useState(''),[qty,setQty]=useState('1'),[cat,setCat]=useState('Diğer'),[icon,setIcon]=useState('🛒'),[addOpen,setAddOpen]=useState(false)
- const [name,setName]=useState(localStorage.getItem('ev_name')||''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[authMode,setAuthMode]=useState('login'),[msg,setMsg]=useState(''),[code,setCode]=useState(''),[toast,setToast]=useState('')
- const channelRef=useRef(null)
- const notify=(t)=>{setToast(t);window.clearTimeout(window.__toast);window.__toast=window.setTimeout(()=>setToast(''),2200)}
- useEffect(()=>{supabase.auth.getSession().then(({data})=>setSession(data.session));const {data}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s));return()=>data.subscription.unsubscribe()},[])
- useEffect(()=>{if(session)loadHouse();else setLoading(false)},[session])
- useEffect(()=>{if(new URLSearchParams(location.search).get('add')==='1')setAddOpen(true)},[])
- async function loadHouse(){
-  setLoading(true)
-  const {data:m}=await supabase.from('household_members').select('household_id,name').eq('user_id',session.user.id).limit(1).maybeSingle()
-  if(m){const {data:h}=await supabase.from('households').select('*').eq('id',m.household_id).single();setHouse(h);const {data:ms}=await supabase.from('household_members').select('*').eq('household_id',m.household_id).order('created_at');setMembers(ms||[]);await loadItems(m.household_id);subscribe(m.household_id)}
-  setLoading(false)
- }
- async function loadItems(hid){const {data}=await supabase.from('shopping_items').select('*').eq('household_id',hid).order('is_bought').order('created_at',{ascending:false});setItems(data||[])}
- function subscribe(hid){if(channelRef.current)supabase.removeChannel(channelRef.current);channelRef.current=supabase.channel('shopping-'+hid).on('postgres_changes',{event:'*',schema:'public',table:'shopping_items',filter:`household_id=eq.${hid}`},()=>loadItems(hid)).subscribe()}
- async function addItem(preset){const n=preset?.[1]||newItem.trim();if(!n||!house)return;const {error}=await supabase.from('shopping_items').insert({household_id:house.id,name:n,quantity:preset?.[3]||qty,icon:preset?.[0]||icon,category:preset?.[2]||cat,added_by:session.user.id});if(error)return notify(error.message);setNewItem('');setQty('1');setAddOpen(false);notify(`${n} listeye eklendi`)}
- async function toggle(i){const {error}=await supabase.from('shopping_items').update({is_bought:!i.is_bought,bought_at:!i.is_bought?new Date().toISOString():null}).eq('id',i.id);if(!error)notify(i.is_bought?'Listeye geri alındı':'Alındı ✓')}
- async function remove(i){const {error}=await supabase.from('shopping_items').delete().eq('id',i.id);if(!error)notify('Ürün kaldırıldı')}
- async function clearBought(){const bought=items.filter(i=>i.is_bought);if(!bought.length)return;await supabase.from('shopping_items').delete().eq('household_id',house.id).eq('is_bought',true);notify('Alınanlar temizlendi')}
- async function auth(){setMsg('');if(authMode==='signup'){const r=await supabase.auth.signUp({email,password});if(r.error)setMsg(r.error.message);else setMsg('Hesap oluşturuldu. E-postanı doğruladıysan giriş yapabilirsin.')}else{const r=await supabase.auth.signInWithPassword({email,password});if(r.error)setMsg(r.error.message)}}
- async function createHome(){localStorage.setItem('ev_name',name);const r=await supabase.rpc('create_household',{p_name:'Bizim Ev',p_member_name:name||'Üye'});if(r.error)setMsg(r.error.message);else{setCode(r.data?.[0]?.invite_code||'');await loadHouse()}}
- async function joinHome(){localStorage.setItem('ev_name',name);const r=await supabase.rpc('join_household',{p_code:code.trim().toUpperCase(),p_name:name||'Üye'});if(r.error)setMsg(r.error.message);else await loadHouse()}
- const pending=items.filter(i=>!i.is_bought),bought=items.filter(i=>i.is_bought),progress=items.length?Math.round((bought.length/items.length)*100):0
- const visible=useMemo(()=>items.filter(i=>(filter==='Hepsi'||i.category===filter)&&(showBought||!i.is_bought)&&(!search.trim()||i.name.toLowerCase().includes(search.toLowerCase()))),[items,filter,showBought,search])
- const grouped=useMemo(()=>visible.reduce((a,i)=>{(a[i.category||'Diğer']??=[]).push(i);return a},{}),[visible])
- if(!session)return <Auth email={email} setEmail={setEmail} password={password} setPassword={setPassword} mode={authMode} setMode={setAuthMode} onAuth={auth} msg={msg}/>
- if(loading)return <div className="splash"><div className="logo-mark">🛒</div><b>Ev Listesi</b><span>Hazırlanıyor…</span></div>
- if(!house)return <div className="center"><div className="setup card"><div className="setup-icon">🛒</div><div className="eyebrow">ORTAK ALIŞVERİŞ</div><h1>Ev Listesi</h1><p>Üç kişinin aynı anda kullanabileceği, hızlı ve sade alışveriş listeniz.</p><input placeholder="Adın" value={name} onChange={e=>setName(e.target.value)}/><button className="primary full" onClick={createHome}>Yeni ev oluştur <ChevronRight size={18}/></button><div className="or"><span>veya</span></div><input placeholder="Ev kodu · A1B2C3" value={code} onChange={e=>setCode(e.target.value)}/><button className="soft full" onClick={joinHome}>Mevcut eve katıl</button>{msg&&<p className="error">{msg}</p>}<button className="link" onClick={()=>supabase.auth.signOut()}>Çıkış yap</button></div></div>
- return <div className="app">
-  <header className="topbar"><div className="brand"><div className="mini-logo">🛒</div><div><div className="eyebrow">{house.name||'BİZİM EV'}</div><h1>Alışveriş</h1></div></div><button className="avatar-stack" onClick={()=>setView('home')}><div className="avatars">{members.slice(0,3).map((m,n)=><span key={m.user_id}>{(m.name||'Ü').slice(0,1).toUpperCase()}</span>)}</div><ChevronRight size={15}/></button></header>
-  {view==='list'&&<>
-   <section className="hero"><div><span className="hero-kicker">BUGÜN</span><h2>{pending.length===0?'Her şey tamam! 🎉':`${pending.length} ürün alınacak`}</h2><p>{pending.length?`Liste hazır. Markete girince tek tek işaretle.`:'Alınanları temizleyip yeni listeye başlayabilirsin.'}</p></div><div className="progress"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="17"/><circle className="progress-value" style={{strokeDashoffset:107-(107*progress/100)}} cx="22" cy="22" r="17"/></svg><b>{progress}%</b></div></section>
-   <div className="searchbar"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Listede ara…"/>{search&&<button onClick={()=>setSearch('')}><X size={16}/></button>}</div>
-   <div className="chips">{cats.map(c=><button key={c} className={filter===c?'chip active':'chip'} onClick={()=>setFilter(c)}>{c!=='Hepsi'&&<span>{catIcons[c]}</span>}{c}</button>)}</div>
-   <div className="section-head"><div><span className="section-title">Liste</span><span className="count">{visible.length}</span></div><button className="text-action" onClick={()=>setShowBought(!showBought)}>{showBought?'Alınanları gizle':'Alınanları göster'}</button></div>
-   <main>{visible.length===0?<div className="empty"><div className="empty-icon">{search?'🔎':'✨'}</div><h2>{search?'Bulamadım':'Liste boş'}</h2><p>{search?'Başka bir kelime dene.':'Eksilen bir şeyi aşağıdaki + ile hemen ekle.'}</p></div>:<div className="groups">{Object.entries(grouped).map(([category,list])=><section className="group" key={category}><div className="group-title"><span>{catIcons[category]||'🛒'}</span>{category}<i>{list.length}</i></div>{list.map(i=><Item key={i.id} item={i} toggle={toggle} remove={remove}/>)}</section>)}</div>}</main>
-   {bought.length>0&&<button className="clear-bought" onClick={clearBought}><Check size={15}/> {bought.length} alınanı temizle</button>}
-   <button className="fab" onClick={()=>setAddOpen(true)}><Plus size={23}/><span>Ürün ekle</span></button>
-  </>}
-  {view==='home'&&<HomeView house={house} members={members} code={house.invite_code} onCopy={()=>{navigator.clipboard?.writeText(house.invite_code);notify('Ev kodu kopyalandı')}} onLogout={()=>supabase.auth.signOut()}/>} 
-  <nav className="bottom-nav"><button className={view==='list'?'active':''} onClick={()=>setView('list')}><ShoppingBasket size={21}/><span>Liste</span></button><button className="nav-add" onClick={()=>setAddOpen(true)}><Plus size={25}/></button><button className={view==='home'?'active':''} onClick={()=>setView('home')}><House size={20}/><span>Evimiz</span></button></nav>
-  {addOpen&&<AddSheet presets={presets} newItem={newItem} setNewItem={setNewItem} qty={qty} setQty={setQty} cat={cat} setCat={setCat} icon={icon} setIcon={setIcon} addItem={addItem} close={()=>setAddOpen(false)}/>} 
-  {toast&&<div className="toast"><Check size={16}/>{toast}</div>}
- </div>
+const presets = [
+  ['🍞','Ekmek','Temel'], ['🥚','Yumurta','Kahvaltı'], ['🥛','Süt','Süt ürünleri'], ['🥤','Kefir','Süt ürünleri'],
+  ['🧀','Peynir','Süt ürünleri'], ['🫒','Zeytinyağı','Kiler'], ['🍅','Domates','Manav'], ['🥒','Salatalık','Manav'],
+  ['🍌','Muz','Manav'], ['🍎','Elma','Manav'], ['🥔','Patates','Manav'], ['🧅','Soğan','Manav'],
+  ['🍗','Tavuk','Et'], ['🥩','Et','Et'], ['🐟','Balık','Et'], ['🍚','Pirinç','Kiler'],
+  ['🍝','Makarna','Kiler'], ['🧂','Tuz','Kiler'], ['🧻','Tuvalet kağıdı','Ev'], ['🧴','Deterjan','Ev'],
+  ['🧼','Sabun','Ev'], ['🍼','Bebek ürünü','Bebek'], ['💧','Su','İçecek'], ['☕','Kahve','İçecek']
+]
+const cats = ['Hepsi','Kahvaltı','Süt ürünleri','Manav','Et','Kiler','Ev','Bebek','İçecek','Temel','Diğer']
+const catIcons = {
+  Kahvaltı: Utensils, 'Süt ürünleri': Milk, Manav: Carrot, Et: Beef, Kiler: Wheat,
+  Ev: SprayCan, Bebek: Baby, İçecek: Droplets, Temel: HomeIcon, Diğer: ShoppingBasket
 }
-function Item({item,toggle,remove}){return <div className={`item ${item.is_bought?'bought':''}`}><button className="check" onClick={()=>toggle(item)}>{item.is_bought&&<Check size={17}/>}</button><span className="item-icon">{item.icon||'🛒'}</span><div className="item-info"><strong>{item.name}</strong><small>{item.quantity&&item.quantity!=='1'?`× ${item.quantity} · `:''}{item.category}</small></div><button className="delete" onClick={()=>remove(item)}><Trash2 size={16}/></button></div>}
-function AddSheet({presets,newItem,setNewItem,qty,setQty,cat,setCat,icon,setIcon,addItem,close}){const [tab,setTab]=useState('popular');return <div className="overlay" onClick={close}><div className="sheet" onClick={e=>e.stopPropagation()}><div className="grab"/><div className="sheet-head"><div><div className="eyebrow">HIZLI EKLE</div><h2>Listeye ne lazım?</h2></div><button className="round-close" onClick={close}><X size={19}/></button></div><div className="sheet-tabs"><button className={tab==='popular'?'active':''} onClick={()=>setTab('popular')}>Sık alınanlar</button><button className={tab==='custom'?'active':''} onClick={()=>setTab('custom')}>Kendim ekle</button></div>{tab==='popular'?<div className="quick-grid">{presets.map(p=><button key={p[1]} onClick={()=>addItem(p)}><span>{p[0]}</span><b>{p[1]}</b><small>{p[2]}</small></button>)}</div>:<div className="custom-form"><div className="emoji-row">{['🛒','🍞','🥚','🥛','🧀','🍅','🧻','🧴'].map(e=><button className={icon===e?'selected':''} key={e} onClick={()=>setIcon(e)}>{e}</button>)}</div><input autoFocus className="big-input" placeholder="Ürün adı" value={newItem} onChange={e=>setNewItem(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addItem()}/><div className="form-row"><div className="stepper"><button onClick={()=>setQty(String(Math.max(1,(Number(qty)||1)-1)))}><Minus size={16}/></button><b>{qty}</b><button onClick={()=>setQty(String((Number(qty)||1)+1))}><Plus size={16}/></button></div><select value={cat} onChange={e=>setCat(e.target.value)}>{cats.slice(1).map(c=><option key={c}>{c}</option>)}</select></div><button className="primary full add-btn" onClick={()=>addItem()}>Listeye ekle <Plus size={18}/></button></div>}</div></div>}
-function HomeView({house,members,code,onCopy,onLogout}){return <main className="home-view"><section className="home-hero"><div className="home-icon"><Users size={25}/></div><div><div className="eyebrow">EVİMİZ</div><h2>{house.name||'Bizim Ev'}</h2><p>{members.length} kişi birlikte kullanıyor</p></div></section><div className="code-card"><div><span>DAVET KODU</span><strong>{code}</strong><small>Bu kodu evdeki diğer kişilere gönder.</small></div><button onClick={onCopy}><Copy size={18}/> Kopyala</button></div><section className="member-card"><div className="section-title">Evde olanlar</div>{members.map(m=><div className="member-row" key={m.user_id}><div className="member-avatar">{(m.name||'Ü').slice(0,1).toUpperCase()}</div><div><b>{m.name||'Üye'}</b><small>{m.user_id===members[0]?.user_id?'Ev sahibi':'Üye'}</small></div><Check size={18}/></div>)}</section><button className="logout" onClick={onLogout}><LogOut size={17}/> Çıkış yap</button></main>}
-function Auth({email,setEmail,password,setPassword,mode,setMode,onAuth,msg}){return <div className="auth-screen"><div className="auth-card"><div className="auth-logo">🛒</div><span className="eyebrow">EVİNİZİN LİSTESİ</span><h1>Alışverişi<br/><em>birlikte</em> yönetin.</h1><p>Telefonundan ekle, markette işaretle. Üçünüz aynı listeyi anında görün.</p><input type="email" placeholder="E-posta" value={email} onChange={e=>setEmail(e.target.value)}/><input type="password" placeholder="Şifre" value={password} onChange={e=>setPassword(e.target.value)}/><button className="primary full auth-btn" onClick={onAuth}>{mode==='login'?'Giriş yap':'Hesap oluştur'} <ChevronRight size={18}/></button>{msg&&<div className="error">{msg}</div>}<button className="link" onClick={()=>setMode(mode==='login'?'signup':'login')}>{mode==='login'?'İlk kez kullanıyorum → hesap oluştur':'← Giriş yap'}</button></div></div>}
-createRoot(document.getElementById('root')).render(<App/>)
+
+function App() {
+  const [session, setSession] = useState(null)
+  const [items, setItems] = useState([])
+  const [house, setHouse] = useState(null)
+  const [members, setMembers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState('Hepsi')
+  const [showBought, setShowBought] = useState(false)
+  const [search, setSearch] = useState('')
+  const [view, setView] = useState('list')
+  const [newItem, setNewItem] = useState('')
+  const [qty, setQty] = useState('1')
+  const [cat, setCat] = useState('Diğer')
+  const [icon, setIcon] = useState('🛒')
+  const [addOpen, setAddOpen] = useState(false)
+  const [name, setName] = useState(localStorage.getItem('ev_name') || '')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [authMode, setAuthMode] = useState('login')
+  const [msg, setMsg] = useState('')
+  const [code, setCode] = useState('')
+  const [toast, setToast] = useState('')
+  const [busy, setBusy] = useState(false)
+  const channelRef = useRef(null)
+
+  const notify = (text) => {
+    setToast(text)
+    window.clearTimeout(window.__toast)
+    window.__toast = window.setTimeout(() => setToast(''), 2200)
+  }
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data } = supabase.auth.onAuthStateChange((_event, currentSession) => setSession(currentSession))
+    return () => data.subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    if (session) loadHouse()
+    else setLoading(false)
+  }, [session])
+
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('add') === '1') setAddOpen(true)
+  }, [])
+
+  useEffect(() => () => {
+    if (channelRef.current) supabase.removeChannel(channelRef.current)
+  }, [])
+
+  async function loadHouse() {
+    setLoading(true)
+    const { data: member } = await supabase.from('household_members').select('household_id,name').eq('user_id', session.user.id).limit(1).maybeSingle()
+    if (!member) { setHouse(null); setLoading(false); return }
+    const { data: h } = await supabase.from('households').select('*').eq('id', member.household_id).single()
+    setHouse(h)
+    const { data: ms } = await supabase.from('household_members').select('*').eq('household_id', member.household_id).order('created_at')
+    setMembers(ms || [])
+    await loadItems(member.household_id)
+    subscribe(member.household_id)
+    setLoading(false)
+  }
+
+  async function loadItems(hid) {
+    const { data } = await supabase.from('shopping_items').select('*').eq('household_id', hid).order('is_bought').order('created_at', { ascending: false })
+    if (data) setItems(data)
+  }
+
+  function subscribe(hid) {
+    if (channelRef.current) supabase.removeChannel(channelRef.current)
+    channelRef.current = supabase.channel(`shopping-${hid}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_items', filter: `household_id=eq.${hid}` }, () => loadItems(hid))
+      .subscribe()
+  }
+
+  async function addItem(preset) {
+    const productName = preset?.[1] || newItem.trim()
+    if (!productName || !house || busy) return
+    const optimisticId = `temp-${Date.now()}-${Math.random()}`
+    const optimistic = {
+      id: optimisticId, household_id: house.id, name: productName,
+      quantity: preset?.[3] || qty, icon: preset?.[0] || icon,
+      category: preset?.[2] || cat, added_by: session.user.id, is_bought: false,
+      created_at: new Date().toISOString(), optimistic: true
+    }
+    // Ürün, Supabase cevabını beklemeden ekranda görünür.
+    setItems(prev => [optimistic, ...prev])
+    setNewItem(''); setQty('1'); setAddOpen(false)
+    setBusy(true)
+    const { data, error } = await supabase.from('shopping_items').insert({
+      household_id: house.id, name: productName, quantity: preset?.[3] || qty,
+      icon: preset?.[0] || icon, category: preset?.[2] || cat, added_by: session.user.id
+    }).select().single()
+    setBusy(false)
+    if (error) {
+      setItems(prev => prev.filter(i => i.id !== optimisticId))
+      notify(error.message)
+      return
+    }
+    setItems(prev => [data, ...prev.filter(i => i.id !== optimisticId && i.id !== data.id)])
+    notify(`${productName} listeye eklendi`)
+  }
+
+  async function toggle(item) {
+    const nextBought = !item.is_bought
+    // Dokununca anında görsel olarak sepet/alındı durumuna geç.
+    setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_bought: nextBought, bought_at: nextBought ? new Date().toISOString() : null } : i))
+    const { error } = await supabase.from('shopping_items').update({ is_bought: nextBought, bought_at: nextBought ? new Date().toISOString() : null }).eq('id', item.id)
+    if (error) {
+      setItems(prev => prev.map(i => i.id === item.id ? item : i))
+      notify(error.message)
+      return
+    }
+    notify(nextBought ? 'Sepete eklendi ✓' : 'Listeye geri alındı')
+  }
+
+  async function remove(item) {
+    setItems(prev => prev.filter(i => i.id !== item.id))
+    const { error } = await supabase.from('shopping_items').delete().eq('id', item.id)
+    if (error) {
+      await loadItems(house.id)
+      notify(error.message)
+      return
+    }
+    notify('Ürün kaldırıldı')
+  }
+
+  async function clearBought() {
+    const bought = items.filter(i => i.is_bought)
+    if (!bought.length) return
+    setItems(prev => prev.filter(i => !i.is_bought))
+    const { error } = await supabase.from('shopping_items').delete().eq('household_id', house.id).eq('is_bought', true)
+    if (error) { await loadItems(house.id); notify(error.message); return }
+    notify('Sepettekiler temizlendi')
+  }
+
+  async function auth() {
+    setMsg('')
+    if (!email || !password) return setMsg('E-posta ve şifre gerekli.')
+    if (authMode === 'signup') {
+      const r = await supabase.auth.signUp({ email, password })
+      if (r.error) setMsg(r.error.message)
+      else setMsg('Hesap oluşturuldu. E-postanı doğruladıysan giriş yapabilirsin.')
+    } else {
+      const r = await supabase.auth.signInWithPassword({ email, password })
+      if (r.error) setMsg(r.error.message)
+    }
+  }
+
+  async function createHome() {
+    setMsg(''); setBusy(true); localStorage.setItem('ev_name', name)
+    const r = await supabase.rpc('create_household', { p_name: 'Bizim Ev', p_member_name: name || 'Üye' })
+    setBusy(false)
+    if (r.error) setMsg(r.error.message)
+    else { setCode(r.data?.[0]?.invite_code || ''); await loadHouse() }
+  }
+
+  async function joinHome() {
+    setMsg(''); setBusy(true); localStorage.setItem('ev_name', name)
+    const r = await supabase.rpc('join_household', { p_code: code.trim().toUpperCase(), p_name: name || 'Üye' })
+    setBusy(false)
+    if (r.error) setMsg(r.error.message)
+    else await loadHouse()
+  }
+
+  const pending = items.filter(i => !i.is_bought)
+  const bought = items.filter(i => i.is_bought)
+  const progress = items.length ? Math.round((bought.length / items.length) * 100) : 0
+  const visible = useMemo(() => items.filter(i =>
+    (filter === 'Hepsi' || i.category === filter) &&
+    (showBought || !i.is_bought) &&
+    (!search.trim() || i.name.toLowerCase().includes(search.toLowerCase()))
+  ), [items, filter, showBought, search])
+  const grouped = useMemo(() => visible.reduce((acc, item) => {
+    ;(acc[item.category || 'Diğer'] ??= []).push(item); return acc
+  }, {}), [visible])
+
+  if (!session) return <Auth email={email} setEmail={setEmail} password={password} setPassword={setPassword} mode={authMode} setMode={setAuthMode} onAuth={auth} msg={msg} />
+  if (loading) return <div className="splash"><div className="splash-logo"><ShoppingBasket /></div><b>Ev Listesi</b><span>Hazırlanıyor…</span></div>
+  if (!house) return <div className="center"><div className="setup"><div className="setup-icon"><ShoppingBasket /></div><div className="eyebrow">ORTAK ALIŞVERİŞ</div><h1>Ev Listesi</h1><p>Üç kişinin aynı listeyi anında görüp kullanabileceği sade alışveriş uygulaman.</p><input placeholder="Adın" value={name} onChange={e => setName(e.target.value)} /><button className="primary full" disabled={busy} onClick={createHome}>{busy ? 'Oluşturuluyor…' : 'Yeni ev oluştur'} {!busy && <ChevronRight size={18}/>}</button><div className="or"><span>veya</span></div><input placeholder="Ev kodu · A1B2C3" value={code} onChange={e => setCode(e.target.value.toUpperCase())} /><button className="soft full" disabled={busy || !code.trim()} onClick={joinHome}>Mevcut eve katıl</button>{msg && <p className="error">{msg}</p>}<button className="link" onClick={() => supabase.auth.signOut()}>Çıkış yap</button></div></div>
+
+  return <div className="app-shell">
+    <div className="app">
+      <header className="topbar">
+        <div className="brand"><div className="mini-logo"><ShoppingBasket size={19}/></div><div><div className="eyebrow">{house.name || 'BİZİM EV'}</div><h1>{view === 'list' ? 'Alışveriş' : 'Evimiz'}</h1></div></div>
+        <button className="avatar-stack" onClick={() => setView('home')} aria-label="Ev üyeleri"><div className="avatars">{members.slice(0, 3).map(m => <span key={m.user_id}>{(m.name || 'Ü').slice(0, 1).toUpperCase()}</span>)}</div><ChevronRight size={16}/></button>
+      </header>
+
+      {view === 'list' && <>
+        <section className="hero">
+          <div className="hero-copy"><span className="hero-kicker"><Sparkles size={13}/> BUGÜN</span><h2>{pending.length === 0 ? 'Her şey tamam!' : `${pending.length} ürün alınacak`}</h2><p>{pending.length ? `${bought.length} ürün sepette. Kalanları markette işaretle.` : 'Alınanları temizleyip yeni listeye başlayabilirsin.'}</p></div>
+          <div className="progress-wrap"><div className="progress"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="18"/><circle className="progress-value" style={{strokeDashoffset:113.1 - (113.1 * progress / 100)}} cx="24" cy="24" r="18"/></svg><b>{progress}%</b></div><small>tamamlandı</small></div>
+        </section>
+
+        <div className="toolbar"><div className="searchbar"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Listede ara…" />{search && <button onClick={() => setSearch('')}><X size={16}/></button>}</div><button className="filter-button" onClick={() => setShowBought(v => !v)} aria-label="Filtrele"><SlidersHorizontal size={18}/></button></div>
+        <div className="chips">{cats.map(c => { const Icon = c === 'Hepsi' ? ShoppingBasket : catIcons[c]; return <button key={c} className={filter === c ? 'chip active' : 'chip'} onClick={() => setFilter(c)}>{c !== 'Hepsi' && <Icon size={14}/>} {c}</button> })}</div>
+
+        <div className="section-head"><div><span className="section-title">Liste</span><span className="count">{visible.length}</span></div><button className="text-action" onClick={() => setShowBought(v => !v)}>{showBought ? 'Sepeti gizle' : bought.length ? `${bought.length} sepette` : 'Sepeti göster'}</button></div>
+        <main>
+          {visible.length === 0 ? <div className="empty"><div className="empty-icon"><PackagePlus size={28}/></div><h2>{search ? 'Bulamadım' : 'Liste boş'}</h2><p>{search ? 'Başka bir kelime dene.' : 'Eksilen bir şeyi + ile hemen ekle.'}</p><button className="empty-add" onClick={() => setAddOpen(true)}><Plus size={16}/> Ürün ekle</button></div> : <div className="groups">{Object.entries(grouped).map(([category, list]) => <section className="group" key={category}><div className="group-title"><span>{(() => { const I = catIcons[category] || ShoppingBasket; return <I size={16}/> })()}</span>{category}<i>{list.length}</i></div>{list.map(item => <Item key={item.id} item={item} toggle={toggle} remove={remove}/>)}</section>)}</div>}
+        </main>
+        {bought.length > 0 && <button className="clear-bought" onClick={clearBought}><RotateCcw size={15}/> Sepettekileri temizle <span>{bought.length}</span></button>}
+        <button className="fab" onClick={() => setAddOpen(true)}><Plus size={21}/><span>Ürün ekle</span></button>
+      </>}
+
+      {view === 'home' && <HomeView house={house} members={members} code={house.invite_code} onCopy={() => { navigator.clipboard?.writeText(house.invite_code); notify('Ev kodu kopyalandı') }} onLogout={() => supabase.auth.signOut()} />}
+
+      <nav className="bottom-nav"><button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}><ShoppingBasket size={21}/><span>Liste</span></button><button className="nav-add" onClick={() => setAddOpen(true)} aria-label="Ürün ekle"><Plus size={25}/></button><button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}><House size={20}/><span>Evimiz</span></button></nav>
+      {addOpen && <AddSheet presets={presets} newItem={newItem} setNewItem={setNewItem} qty={qty} setQty={setQty} cat={cat} setCat={setCat} icon={icon} setIcon={setIcon} addItem={addItem} close={() => setAddOpen(false)} />}
+      {toast && <div className="toast"><Check size={16}/>{toast}</div>}
+    </div>
+  </div>
+}
+
+function Item({ item, toggle, remove }) {
+  return <div className={`item ${item.is_bought ? 'bought' : ''} ${item.optimistic ? 'pending-sync' : ''}`}>
+    <button className="check" onClick={() => toggle(item)} aria-label={item.is_bought ? 'Listeye geri al' : 'Sepete ekle'}>{item.is_bought && <Check size={17}/>}</button>
+    <span className="item-icon">{item.icon || '🛒'}</span>
+    <div className="item-info"><strong>{item.name}</strong><small>{item.quantity && item.quantity !== '1' ? `× ${item.quantity} · ` : ''}{item.category}</small></div>
+    <button className="delete" onClick={() => remove(item)} aria-label="Ürünü sil"><Trash2 size={16}/></button>
+  </div>
+}
+
+function AddSheet({ presets, newItem, setNewItem, qty, setQty, cat, setCat, icon, setIcon, addItem, close }) {
+  const [tab, setTab] = useState('popular')
+  return <div className="overlay" onClick={close}><div className="sheet" onClick={e => e.stopPropagation()}><div className="grab"/><div className="sheet-head"><div><div className="eyebrow">HIZLI EKLE</div><h2>Listeye ne lazım?</h2><p>Tek dokunuşla ekle veya kendin yaz.</p></div><button className="round-close" onClick={close}><X size={19}/></button></div><div className="sheet-tabs"><button className={tab === 'popular' ? 'active' : ''} onClick={() => setTab('popular')}>Sık alınanlar</button><button className={tab === 'custom' ? 'active' : ''} onClick={() => setTab('custom')}>Kendim ekle</button></div>{tab === 'popular' ? <div className="quick-grid">{presets.map(p => <button key={p[1]} onClick={() => addItem(p)}><span>{p[0]}</span><b>{p[1]}</b><small>{p[2]}</small></button>)}</div> : <div className="custom-form"><div className="emoji-row">{['🛒','🍞','🥚','🥛','🧀','🍅','🧻','🧴'].map(e => <button className={icon === e ? 'selected' : ''} key={e} onClick={() => setIcon(e)}>{e}</button>)}</div><input autoFocus className="big-input" placeholder="Örn. kahvaltılık zeytin" value={newItem} onChange={e => setNewItem(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} /><div className="form-row"><div className="stepper"><button onClick={() => setQty(String(Math.max(1, (Number(qty) || 1) - 1)))}><Minus size={16}/></button><b>{qty}</b><button onClick={() => setQty(String((Number(qty) || 1) + 1))}><Plus size={16}/></button></div><select value={cat} onChange={e => setCat(e.target.value)}>{cats.slice(1).map(c => <option key={c}>{c}</option>)}</select></div><button className="primary full add-btn" onClick={() => addItem()}>Listeye ekle <Plus size={18}/></button></div>}</div></div>
+}
+
+function HomeView({ house, members, code, onCopy, onLogout }) {
+  return <main className="home-view"><section className="home-hero"><div className="home-icon"><Users size={25}/></div><div><div className="eyebrow">EVİMİZ</div><h2>{house.name || 'Bizim Ev'}</h2><p>{members.length} kişi birlikte kullanıyor</p></div></section><div className="code-card"><div><span>DAVET KODU</span><strong>{code}</strong><small>Diğer kişilere göndererek aynı listeye bağla.</small></div><button onClick={onCopy}><Copy size={17}/> Kopyala</button></div><section className="member-card"><div className="section-title">Evde olanlar</div>{members.map((m, index) => <div className="member-row" key={m.user_id}><div className="member-avatar">{(m.name || 'Ü').slice(0, 1).toUpperCase()}</div><div><b>{m.name || 'Üye'}</b><small>{index === 0 ? 'Ev sahibi' : 'Üye'}</small></div><CircleCheck size={18}/></div>)}</section><button className="logout" onClick={onLogout}><LogOut size={17}/> Çıkış yap</button></main>
+}
+
+function Auth({ email, setEmail, password, setPassword, mode, setMode, onAuth, msg }) {
+  return <div className="auth-screen"><div className="auth-card"><div className="auth-logo"><ShoppingBasket size={27}/></div><span className="eyebrow">EVİNİZİN LİSTESİ</span><h1>Alışverişi<br/><em>birlikte</em> yönetin.</h1><p>Telefonundan ekle, markette sepete at. Üçünüz aynı listeyi anında görün.</p><input type="email" placeholder="E-posta" value={email} onChange={e => setEmail(e.target.value)}/><input type="password" placeholder="Şifre" value={password} onChange={e => setPassword(e.target.value)}/><button className="primary full auth-btn" onClick={onAuth}>{mode === 'login' ? 'Giriş yap' : 'Hesap oluştur'} <ChevronRight size={18}/></button>{msg && <div className="error">{msg}</div>}<button className="link" onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}>{mode === 'login' ? 'İlk kez kullanıyorum → hesap oluştur' : '← Giriş yap'}</button></div></div>
+}
+
+createRoot(document.getElementById('root')).render(<App />)
