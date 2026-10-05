@@ -184,7 +184,7 @@ function App() {
     }
     // Ürün, Supabase cevabını beklemeden ekranda görünür.
     setItems(prev => [optimistic, ...prev])
-    setNewItem(''); setQty('1'); setAddOpen(false)
+    setNewItem(''); setQty('1');
     setBusy(true)
     const { data, error } = await supabase.from('shopping_items').insert({
       household_id: house.id, name: productName, quantity: preset?.[3] || qty,
@@ -283,48 +283,78 @@ function App() {
 
   return <div className="app-shell">
     <div className="app">
-      <header className="topbar">
-        <div className="brand"><div className="mini-logo"><ShoppingBasket size={19}/></div><div><div className="eyebrow">{house.name || 'BİZİM EV'}</div><h1>{view === 'list' ? 'Alışveriş' : 'Evimiz'}</h1></div></div>
-        <button className="avatar-stack" onClick={() => setView('home')} aria-label="Ev üyeleri"><div className="avatars">{members.slice(0, 3).map(m => <span key={m.user_id}>{(m.name || 'Ü').slice(0, 1).toUpperCase()}</span>)}</div><ChevronRight size={16}/></button>
-      </header>
+      {view === 'list' ? <>
+        <header className="main-header">
+          <div className="header-top">
+            <div className="location" onClick={() => setView('home')}>
+              <span className="eyebrow">Geçerli Ev</span>
+              <strong><House size={14}/> {house.name || 'BİZİM EV'} <ChevronRight size={14}/></strong>
+            </div>
+            <button className="cart-btn" onClick={() => setShowBought(v => !v)}>
+              <ShoppingBasket size={20} />
+              {bought.length > 0 && <span className="badge">{bought.length}</span>}
+            </button>
+          </div>
+          <div className="searchbar">
+            <Search size={18}/>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Ürün ara..." />
+            {search && <button onClick={() => setSearch('')}><X size={16}/></button>}
+          </div>
+        </header>
 
-      {view === 'list' && <>
-        <section className="hero">
-          <div className="hero-copy"><span className="hero-kicker"><Sparkles size={13}/> BUGÜN</span><h2>{pending.length === 0 ? 'Her şey tamam!' : `${pending.length} ürün alınacak`}</h2><p>{pending.length ? `${bought.length} ürün sepette. Kalanları markette işaretle.` : 'Alınanları temizleyip yeni listeye başlayabilirsin.'}</p></div>
-          <div className="progress-wrap"><div className="progress"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="18"/><circle className="progress-value" style={{strokeDashoffset:113.1 - (113.1 * progress / 100)}} cx="24" cy="24" r="18"/></svg><b>{progress}%</b></div><small>tamamlandı</small></div>
-        </section>
+        <main className="content">
+          <div className="categories-scroll">
+            {cats.map(c => { 
+              const Icon = c === 'Hepsi' ? ShoppingBasket : catIcons[c]; 
+              return <button key={c} className={`cat-btn ${filter === c ? 'active' : ''}`} onClick={() => setFilter(c)}>
+                <div className="cat-icon">{c !== 'Hepsi' && <Icon size={22}/>}</div>
+                <span>{c}</span>
+              </button> 
+            })}
+          </div>
 
-        <div className="toolbar"><div className="searchbar"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Listede ara…" />{search && <button onClick={() => setSearch('')}><X size={16}/></button>}</div><button className="filter-button" onClick={() => setShowBought(v => !v)} aria-label="Filtrele"><SlidersHorizontal size={18}/></button></div>
-        <div className="chips">{cats.map(c => { const Icon = c === 'Hepsi' ? ShoppingBasket : catIcons[c]; return <button key={c} className={filter === c ? 'chip active' : 'chip'} onClick={() => setFilter(c)}>{c !== 'Hepsi' && <Icon size={14}/>} {c}</button> })}</div>
-        <QuickAddInput onAdd={addItem} />
-        <div className="section-head"><div><span className="section-title">Liste</span><span className="count">{visible.length}</span></div><button className="text-action" onClick={() => setShowBought(v => !v)}>{showBought ? 'Sepeti gizle' : bought.length ? `${bought.length} sepette` : 'Sepeti göster'}</button></div>
-        <main>
-          {visible.length === 0 ? <div className="empty"><div className="empty-icon"><PackagePlus size={28}/></div><h2>{search ? 'Bulamadım' : 'Liste boş'}</h2><p>{search ? 'Başka bir kelime dene.' : 'Eksilen bir şeyi + ile hemen ekle.'}</p><button className="empty-add" onClick={() => setAddOpen(true)}><Plus size={16}/> Ürün ekle</button></div> : <div className="groups">{Object.entries(grouped).map(([category, list]) => <section className="group" key={category}><div className="group-title"><span>{(() => { const I = catIcons[category] || ShoppingBasket; return <I size={16}/> })()}</span>{category}<i>{list.length}</i></div>{list.map(item => <Item key={item.id} item={item} toggle={toggle} remove={remove}/>)}</section>)}</div>}
+          <div className="hero-compact">
+            <div><h2>{pending.length === 0 ? 'Her şey tamam!' : `${pending.length} ürün alınacak`}</h2><p>{pending.length ? `${bought.length} ürün sepette.` : 'Harika iş çıkardın.'}</p></div>
+            <div className="progress-circle"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="14"/><circle className="progress-value" style={{strokeDashoffset:87.9 - (87.9 * progress / 100)}} cx="18" cy="18" r="14"/></svg><b>{progress}%</b></div>
+          </div>
+
+          <QuickAddInput onAdd={addItem} />
+
+          <div className="section-head">
+            <div><span className="section-title">Liste</span><span className="count">{visible.length}</span></div>
+          </div>
+          
+          {visible.length === 0 ? <div className="empty"><div className="empty-icon"><PackagePlus size={28}/></div><h2>{search ? 'Bulamadım' : 'Liste boş'}</h2><p>{search ? 'Başka bir kelime dene.' : 'Yeni ürün ekleyerek başla.'}</p></div> : <div className="groups">{Object.entries(grouped).map(([category, list]) => <section className="group" key={category}><div className="group-title"><span>{(() => { const I = catIcons[category] || ShoppingBasket; return <I size={16}/> })()}</span>{category}<i>{list.length}</i></div><div className="grid-list">{list.map(item => <Item key={item.id} item={item} toggle={toggle} remove={remove}/>)}</div></section>)}</div>}
+          
+          {bought.length > 0 && <button className="clear-bought" onClick={clearBought}><RotateCcw size={15}/> Sepettekileri temizle <span>{bought.length}</span></button>}
         </main>
-        {bought.length > 0 && <button className="clear-bought" onClick={clearBought}><RotateCcw size={15}/> Sepettekileri temizle <span>{bought.length}</span></button>}
-        <button className="fab" onClick={() => setAddOpen(true)}><Plus size={21}/><span>Ürün ekle</span></button>
-      </>}
+      </> : <div className="content"><header className="topbar" style={{padding:'20px'}}><div className="brand"><h1>Evimiz</h1></div></header><HomeView house={house} members={members} code={house.invite_code} onCopy={() => { navigator.clipboard?.writeText(house.invite_code); notify('Ev kodu kopyalandı') }} onLogout={() => supabase.auth.signOut()} /></div>}
 
-      {view === 'home' && <HomeView house={house} members={members} code={house.invite_code} onCopy={() => { navigator.clipboard?.writeText(house.invite_code); notify('Ev kodu kopyalandı') }} onLogout={() => supabase.auth.signOut()} />}
-
-      <nav className="bottom-nav"><button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}><ShoppingBasket size={21}/><span>Liste</span></button><button className="nav-add" onClick={() => setAddOpen(true)} aria-label="Ürün ekle"><Plus size={25}/></button><button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}><House size={20}/><span>Evimiz</span></button></nav>
+      <nav className="bottom-nav">
+        <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}><House size={24}/></button>
+        <button className="nav-add" onClick={() => setAddOpen(true)} aria-label="Ürün ekle"><Plus size={25}/></button>
+        <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}><Users size={24}/></button>
+      </nav>
       {addOpen && <AddSheet presets={presets} newItem={newItem} setNewItem={setNewItem} qty={qty} setQty={setQty} cat={cat} setCat={setCat} icon={icon} setIcon={setIcon} addItem={addItem} close={() => setAddOpen(false)} />}
       {toast && <div className="toast"><Check size={16}/>{toast}</div>}
     </div>
   </div>
+
 }
 
 function QuickAddInput({ onAdd }) {
   const [val, setVal] = useState('')
+  const inputRef = useRef(null)
   const submit = (e) => {
     e.preventDefault()
     if (!val.trim()) return
     onAdd(null, val.trim())
     setVal('')
+    setTimeout(() => inputRef.current?.focus(), 10)
   }
   return <form className="quick-add-form" onSubmit={submit}>
     <div className="quick-add-wrap">
-      <input placeholder="Ne lazım? (örn. Süt, Ekmek)" value={val} onChange={e => setVal(e.target.value)} />
+      <input ref={inputRef} placeholder="Ne lazım? (örn. Süt, Ekmek)" value={val} onChange={e => setVal(e.target.value)} />
       <button type="submit" disabled={!val.trim()} aria-label="Ekle"><Plus size={18}/></button>
     </div>
   </form>
@@ -332,12 +362,12 @@ function QuickAddInput({ onAdd }) {
 
 function Item({ item, toggle, remove }) {
   return <div className={`item ${item.is_bought ? 'bought' : ''} ${item.optimistic ? 'pending-sync' : ''}`}>
-    <button className="check" onClick={() => toggle(item)} aria-label={item.is_bought ? 'Listeye geri al' : 'Sepete ekle'}>{item.is_bought && <Check size={17}/>}</button>
-    <div className="item-body" onClick={() => toggle(item)} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, cursor: 'pointer' }}>
+    <button className="delete" onClick={(e) => { e.stopPropagation(); remove(item); }} aria-label="Ürünü sil"><Trash2 size={15}/></button>
+    <div className="item-body" onClick={() => toggle(item)} style={{ cursor: 'pointer' }}>
       <span className="item-icon">{item.icon || '🛒'}</span>
       <div className="item-info"><strong>{item.name}</strong><small>{item.quantity && item.quantity !== '1' ? `× ${item.quantity} · ` : ''}{item.category}</small></div>
     </div>
-    <button className="delete" onClick={() => remove(item)} aria-label="Ürünü sil"><Trash2 size={16}/></button>
+    <button className="check" onClick={() => toggle(item)} aria-label={item.is_bought ? 'Listeye geri al' : 'Sepete ekle'}>{item.is_bought ? <Check size={20}/> : <Plus size={20}/>}</button>
   </div>
 }
 
