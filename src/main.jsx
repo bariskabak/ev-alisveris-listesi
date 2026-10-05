@@ -12,17 +12,81 @@ import './style.css'
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY)
 
 const presets = [
-  ['🍞','Ekmek','Temel'], ['🥚','Yumurta','Kahvaltı'], ['🥛','Süt','Süt ürünleri'], ['🥤','Kefir','Süt ürünleri'],
-  ['🧀','Peynir','Süt ürünleri'], ['🫒','Zeytinyağı','Kiler'], ['🍅','Domates','Manav'], ['🥒','Salatalık','Manav'],
-  ['🍌','Muz','Manav'], ['🍎','Elma','Manav'], ['🥔','Patates','Manav'], ['🧅','Soğan','Manav'],
-  ['🍗','Tavuk','Et'], ['🥩','Et','Et'], ['🐟','Balık','Et'], ['🍚','Pirinç','Kiler'],
-  ['🍝','Makarna','Kiler'], ['🧂','Tuz','Kiler'], ['🧻','Tuvalet kağıdı','Ev'], ['🧴','Deterjan','Ev'],
-  ['🧼','Sabun','Ev'], ['🍼','Bebek ürünü','Bebek'], ['💧','Su','İçecek'], ['☕','Kahve','İçecek']
+  // Meyve & Sebze
+  ['🍎','Elma','Meyve & Sebze'], ['🍌','Muz','Meyve & Sebze'], ['🍊','Portakal','Meyve & Sebze'],
+  ['🍓','Çilek','Meyve & Sebze'], ['🍅','Domates','Meyve & Sebze'], ['🥒','Salatalık','Meyve & Sebze'],
+  ['🥬','Marul','Meyve & Sebze'], ['🥕','Havuç','Meyve & Sebze'], ['🥔','Patates','Meyve & Sebze'],
+  ['🧅','Soğan','Meyve & Sebze'], ['🧄','Sarımsak','Meyve & Sebze'], ['🫑','Biber','Meyve & Sebze'],
+  ['🍋','Limon','Meyve & Sebze'], ['🍉','Karpuz','Meyve & Sebze'], ['🥦','Brokoli','Meyve & Sebze'],
+
+  // Ekmek & Fırın
+  ['🍞','Ekmek','Ekmek & Fırın'], ['🥖','Baget ekmek','Ekmek & Fırın'], ['🥪','Tost ekmeği','Ekmek & Fırın'],
+  ['🫓','Lavaş','Ekmek & Fırın'], ['🥐','Poğaça','Ekmek & Fırın'], ['🥯','Simit','Ekmek & Fırın'],
+
+  // Süt & Kahvaltı
+  ['🥚','Yumurta','Süt & Kahvaltı'], ['🥛','Süt','Süt & Kahvaltı'], ['🥤','Kefir','Süt & Kahvaltı'],
+  ['🧀','Peynir','Süt & Kahvaltı'], ['🧈','Tereyağı','Süt & Kahvaltı'], ['🥣','Yoğurt','Süt & Kahvaltı'],
+  ['🫒','Zeytin','Süt & Kahvaltı'], ['🍯','Bal','Süt & Kahvaltı'],
+
+  // İçecek
+  ['💧','Su','İçecek'], ['🫧','Maden suyu','İçecek'], ['🧃','Meyve suyu','İçecek'],
+  ['🥤','Gazlı içecek','İçecek'], ['☕','Kahve','İçecek'], ['🍵','Çay','İçecek'],
+
+  // Bebek
+  ['👶','Bebek bezi','Bebek'], ['🧻','Islak mendil','Bebek'], ['🧴','Pişik kremi','Bebek'],
+  ['🍼','Bebek maması','Bebek'], ['🍼','Biberon','Bebek'], ['🧴','Bebek şampuanı','Bebek'],
+
+  // Et & Şarküteri
+  ['🍗','Tavuk','Et & Şarküteri'], ['🥩','Kırmızı et','Et & Şarküteri'], ['🐟','Balık','Et & Şarküteri'],
+  ['🥓','Sucuk','Et & Şarküteri'], ['🥪','Salam','Et & Şarküteri'],
+
+  // Kiler
+  ['🍚','Pirinç','Kiler'], ['🍝','Makarna','Kiler'], ['🫘','Bakliyat','Kiler'],
+  ['🧂','Tuz','Kiler'], ['🍬','Şeker','Kiler'], ['🫗','Zeytinyağı','Kiler'],
+  ['🥫','Konserve','Kiler'], ['🍅','Salça','Kiler'],
+
+  // Atıştırmalık
+  ['🍪','Bisküvi','Atıştırmalık'], ['🍫','Çikolata','Atıştırmalık'], ['🥨','Kraker','Atıştırmalık'],
+  ['🍿','Patlamış mısır','Atıştırmalık'], ['🥜','Kuruyemiş','Atıştırmalık'],
+
+  // Ev & Temizlik
+  ['🧻','Tuvalet kağıdı','Ev & Temizlik'], ['🧻','Kağıt havlu','Ev & Temizlik'], ['🧴','Bulaşık deterjanı','Ev & Temizlik'],
+  ['🧺','Çamaşır deterjanı','Ev & Temizlik'], ['🧽','Sünger','Ev & Temizlik'], ['🧹','Çöp poşeti','Ev & Temizlik'],
+  ['🧼','Sabun','Ev & Temizlik'],
+
+  // Kişisel Bakım
+  ['🪥','Diş macunu','Kişisel Bakım'], ['🪥','Diş fırçası','Kişisel Bakım'], ['🧴','Şampuan','Kişisel Bakım'],
+  ['🧴','Deodorant','Kişisel Bakım'], ['🧻','Peçete','Kişisel Bakım'],
+
+  // Evcil Hayvan
+  ['🐱','Kedi maması','Evcil Hayvan'], ['🐶','Köpek maması','Evcil Hayvan'], ['🧹','Kedi kumu','Evcil Hayvan']
 ]
-const cats = ['Hepsi','Kahvaltı','Süt ürünleri','Manav','Et','Kiler','Ev','Bebek','İçecek','Temel','Diğer']
+const cats = ['Hepsi','Meyve & Sebze','Ekmek & Fırın','Süt & Kahvaltı','İçecek','Bebek','Et & Şarküteri','Kiler','Atıştırmalık','Ev & Temizlik','Kişisel Bakım','Evcil Hayvan','Diğer']
+
 const catIcons = {
-  Kahvaltı: Utensils, 'Süt ürünleri': Milk, Manav: Carrot, Et: Beef, Kiler: Wheat,
-  Ev: SprayCan, Bebek: Baby, İçecek: Droplets, Temel: HomeIcon, Diğer: ShoppingBasket
+  'Meyve & Sebze': Carrot, 'Ekmek & Fırın': Wheat, 'Süt & Kahvaltı': Milk,
+  İçecek: Droplets, Bebek: Baby, 'Et & Şarküteri': Beef, Kiler: Wheat,
+  Atıştırmalık: Utensils, 'Ev & Temizlik': SprayCan, 'Kişisel Bakım': Droplets,
+  'Evcil Hayvan': HomeIcon, Diğer: ShoppingBasket
+}
+
+const smartCategory = (name) => {
+  const n = name.toLocaleLowerCase('tr-TR')
+  const rules = [
+    ['Meyve & Sebze',['elma','muz','portakal','mandalina','çilek','domates','salatalık','marul','havuç','patates','soğan','sarımsak','biber','limon','karpuz','brokoli','meyve','sebze']],
+    ['Ekmek & Fırın',['ekmek','baget','tost ekmeği','lavaş','poğaça','simit','kruvasan','yufka']],
+    ['Süt & Kahvaltı',['yumurta','süt','kefir','peynir','tereyağı','yoğurt','zeytin','bal','reçel']],
+    ['İçecek',['su','maden suyu','soda','meyve suyu','kahve','çay','kola','içecek']],
+    ['Bebek',['bez','bebek','mama','ıslak mendil','pişik','biberon']],
+    ['Et & Şarküteri',['tavuk','et','kıyma','balık','sucuk','salam','sosis','pastırma']],
+    ['Kiler',['pirinç','makarna','bakliyat','mercimek','nohut','fasulye','tuz','şeker','salça','konserve','yağ']],
+    ['Atıştırmalık',['bisküvi','çikolata','kraker','cips','kuruyemiş','mısır']],
+    ['Ev & Temizlik',['deterjan','çamaşır','bulaşık','sünger','çöp poşeti','tuvalet kağıdı','kağıt havlu','sabun','temizlik']],
+    ['Kişisel Bakım',['diş macunu','diş fırçası','şampuan','deodorant','kolonya','tıraş']],
+    ['Evcil Hayvan',['kedi','köpek','mama','kedi kumu']]
+  ]
+  for (const [category, words] of rules) if (words.some(w => n.includes(w))) return category
+  return 'Diğer'
 }
 
 function App() {
@@ -103,11 +167,12 @@ function App() {
   async function addItem(preset) {
     const productName = preset?.[1] || newItem.trim()
     if (!productName || !house || busy) return
+    const finalCategory = preset?.[2] || (cat === 'Diğer' ? smartCategory(productName) : cat)
     const optimisticId = `temp-${Date.now()}-${Math.random()}`
     const optimistic = {
       id: optimisticId, household_id: house.id, name: productName,
       quantity: preset?.[3] || qty, icon: preset?.[0] || icon,
-      category: preset?.[2] || cat, added_by: session.user.id, is_bought: false,
+      category: finalCategory, added_by: session.user.id, is_bought: false,
       created_at: new Date().toISOString(), optimistic: true
     }
     // Ürün, Supabase cevabını beklemeden ekranda görünür.
@@ -116,7 +181,7 @@ function App() {
     setBusy(true)
     const { data, error } = await supabase.from('shopping_items').insert({
       household_id: house.id, name: productName, quantity: preset?.[3] || qty,
-      icon: preset?.[0] || icon, category: preset?.[2] || cat, added_by: session.user.id
+      icon: preset?.[0] || icon, category: finalCategory, added_by: session.user.id
     }).select().single()
     setBusy(false)
     if (error) {
@@ -250,7 +315,10 @@ function Item({ item, toggle, remove }) {
 
 function AddSheet({ presets, newItem, setNewItem, qty, setQty, cat, setCat, icon, setIcon, addItem, close }) {
   const [tab, setTab] = useState('popular')
-  return <div className="overlay" onClick={close}><div className="sheet" onClick={e => e.stopPropagation()}><div className="grab"/><div className="sheet-head"><div><div className="eyebrow">HIZLI EKLE</div><h2>Listeye ne lazım?</h2><p>Tek dokunuşla ekle veya kendin yaz.</p></div><button className="round-close" onClick={close}><X size={19}/></button></div><div className="sheet-tabs"><button className={tab === 'popular' ? 'active' : ''} onClick={() => setTab('popular')}>Sık alınanlar</button><button className={tab === 'custom' ? 'active' : ''} onClick={() => setTab('custom')}>Kendim ekle</button></div>{tab === 'popular' ? <div className="quick-grid">{presets.map(p => <button key={p[1]} onClick={() => addItem(p)}><span>{p[0]}</span><b>{p[1]}</b><small>{p[2]}</small></button>)}</div> : <div className="custom-form"><div className="emoji-row">{['🛒','🍞','🥚','🥛','🧀','🍅','🧻','🧴'].map(e => <button className={icon === e ? 'selected' : ''} key={e} onClick={() => setIcon(e)}>{e}</button>)}</div><input autoFocus className="big-input" placeholder="Örn. kahvaltılık zeytin" value={newItem} onChange={e => setNewItem(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} /><div className="form-row"><div className="stepper"><button onClick={() => setQty(String(Math.max(1, (Number(qty) || 1) - 1)))}><Minus size={16}/></button><b>{qty}</b><button onClick={() => setQty(String((Number(qty) || 1) + 1))}><Plus size={16}/></button></div><select value={cat} onChange={e => setCat(e.target.value)}>{cats.slice(1).map(c => <option key={c}>{c}</option>)}</select></div><button className="primary full add-btn" onClick={() => addItem()}>Listeye ekle <Plus size={18}/></button></div>}</div></div>
+  const [quickCat, setQuickCat] = useState('Meyve & Sebze')
+  const quickCategories = cats.filter(c => c !== 'Hepsi' && c !== 'Diğer')
+  const filteredPresets = presets.filter(p => p[2] === quickCat)
+  return <div className="overlay" onClick={close}><div className="sheet" onClick={e => e.stopPropagation()}><div className="grab"/><div className="sheet-head"><div><div className="eyebrow">HIZLI EKLE</div><h2>Listeye ne lazım?</h2><p>Grubu seç, ürüne bir kez dokun.</p></div><button className="round-close" onClick={close}><X size={19}/></button></div><div className="sheet-tabs"><button className={tab === 'popular' ? 'active' : ''} onClick={() => setTab('popular')}>Hızlı ekle</button><button className={tab === 'custom' ? 'active' : ''} onClick={() => setTab('custom')}>Kendim ekle</button></div>{tab === 'popular' ? <><div className="quick-cats">{quickCategories.map(c => <button key={c} className={quickCat === c ? 'active' : ''} onClick={() => setQuickCat(c)}>{c}</button>)}</div><div className="quick-grid">{filteredPresets.map((p, idx) => <button key={`${p[1]}-${idx}`} onClick={() => addItem(p)}><span>{p[0]}</span><b>{p[1]}</b></button>)}</div></> : <div className="custom-form"><div className="emoji-row">{['🛒','🍞','🥚','🥛','🧀','🍎','👶','💧'].map(e => <button className={icon === e ? 'selected' : ''} key={e} onClick={() => setIcon(e)}>{e}</button>)}</div><input autoFocus className="big-input" placeholder="Örn. kahvaltılık zeytin" value={newItem} onChange={e => setNewItem(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} /><div className="form-row"><div className="stepper"><button onClick={() => setQty(String(Math.max(1, (Number(qty) || 1) - 1)))}><Minus size={16}/></button><b>{qty}</b><button onClick={() => setQty(String((Number(qty) || 1) + 1))}><Plus size={16}/></button></div><select value={cat} onChange={e => setCat(e.target.value)}>{cats.slice(1).map(c => <option key={c}>{c}</option>)}</select></div><button className="primary full add-btn" onClick={() => addItem()}>Listeye ekle <Plus size={18}/></button></div>}</div></div>
 }
 
 function HomeView({ house, members, code, onCopy, onLogout }) {
