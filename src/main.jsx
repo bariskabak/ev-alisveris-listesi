@@ -70,6 +70,7 @@ const presets = [
 const cats = ['Hepsi','Meyve & Sebze','Ekmek & Fırın','Süt & Kahvaltı','İçecek','Bebek','Et & Şarküteri','Kiler','Atıştırmalık','Ev & Temizlik','Kişisel Bakım','Evcil Hayvan','Diğer']
 
 const catIcons = {
+  'Hepsi': ShoppingBasket,
   'Meyve & Sebze': Carrot, 'Ekmek & Fırın': Wheat, 'Süt & Kahvaltı': Milk,
   İçecek: Droplets, Bebek: Baby, 'Et & Şarküteri': Beef, Kiler: Wheat,
   Atıştırmalık: Utensils, 'Ev & Temizlik': SprayCan, 'Kişisel Bakım': Droplets,
@@ -305,7 +306,7 @@ function App() {
         <main className="content">
           <div className="categories-scroll">
             {cats.map(c => { 
-              const Icon = c === 'Hepsi' ? ShoppingBasket : catIcons[c]; 
+              const Icon = catIcons[c] || ShoppingBasket; 
               return <button key={c} className={`cat-btn ${filter === c ? 'active' : ''}`} onClick={() => setFilter(c)}>
                 <div className="cat-icon">{c !== 'Hepsi' && <Icon size={22}/>}</div>
                 <span>{c}</span>
@@ -321,7 +322,8 @@ function App() {
           <QuickAddInput onAdd={addItem} />
 
           <div className="section-head">
-            <div><span className="section-title">Liste</span><span className="count">{visible.length}</span></div>
+            <div><span className="section-title">Alışveriş listesi</span><span className="count">{visible.length}</span></div>
+            {showBought && bought.length > 0 && <button className="text-action" onClick={() => setShowBought(false)}>Aktifleri göster</button>}
           </div>
           
           {visible.length === 0 ? <div className="empty"><div className="empty-icon"><PackagePlus size={28}/></div><h2>{search ? 'Bulamadım' : 'Liste boş'}</h2><p>{search ? 'Başka bir kelime dene.' : 'Yeni ürün ekleyerek başla.'}</p></div> : <div className="groups">{Object.entries(grouped).map(([category, list]) => <section className="group" key={category}><div className="group-title"><span>{(() => { const I = catIcons[category] || ShoppingBasket; return <I size={16}/> })()}</span>{category}<i>{list.length}</i></div><div className="grid-list">{list.map(item => <Item key={item.id} item={item} toggle={toggle} remove={remove}/>)}</div></section>)}</div>}
@@ -331,9 +333,9 @@ function App() {
       </> : <div className="content"><header className="topbar" style={{padding:'20px'}}><div className="brand"><h1>Evimiz</h1></div></header><HomeView house={house} members={members} code={house.invite_code} onCopy={() => { navigator.clipboard?.writeText(house.invite_code); notify('Ev kodu kopyalandı') }} onLogout={() => supabase.auth.signOut()} /></div>}
 
       <nav className="bottom-nav">
-        <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}><House size={24}/></button>
-        <button className="nav-add" onClick={() => setAddOpen(true)} aria-label="Ürün ekle"><Plus size={25}/></button>
-        <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}><Users size={24}/></button>
+        <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}><House size={22}/><span>Liste</span></button>
+        <button className="nav-add" onClick={() => setAddOpen(true)} aria-label="Ürün ekle"><Plus size={25}/><span>Ekle</span></button>
+        <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}><Users size={22}/><span>Evimiz</span></button>
       </nav>
       {addOpen && <AddSheet presets={presets} newItem={newItem} setNewItem={setNewItem} qty={qty} setQty={setQty} cat={cat} setCat={setCat} icon={icon} setIcon={setIcon} addItem={addItem} close={() => setAddOpen(false)} />}
       {toast && <div className="toast"><Check size={16}/>{toast}</div>}
@@ -376,7 +378,7 @@ function AddSheet({ presets, newItem, setNewItem, qty, setQty, cat, setCat, icon
   const [quickCat, setQuickCat] = useState('Meyve & Sebze')
   const quickCategories = cats.filter(c => c !== 'Hepsi' && c !== 'Diğer')
   const filteredPresets = presets.filter(p => p[2] === quickCat)
-  return <div className="overlay" onClick={close}><div className="sheet" onClick={e => e.stopPropagation()}><div className="grab"/><div className="sheet-head"><div><div className="eyebrow">HIZLI EKLE</div><h2>Listeye ne lazım?</h2><p>Grubu seç, ürüne bir kez dokun.</p></div><button className="round-close" onClick={close}><X size={19}/></button></div><div className="sheet-tabs"><button className={tab === 'popular' ? 'active' : ''} onClick={() => setTab('popular')}>Hızlı ekle</button><button className={tab === 'custom' ? 'active' : ''} onClick={() => setTab('custom')}>Kendim ekle</button></div>{tab === 'popular' ? <><div className="quick-cats">{quickCategories.map(c => <button key={c} className={quickCat === c ? 'active' : ''} onClick={() => setQuickCat(c)}>{c}</button>)}</div><div className="quick-grid">{filteredPresets.map((p, idx) => <button key={`${p[1]}-${idx}`} onClick={() => addItem(p)}><span>{p[0]}</span><b>{p[1]}</b></button>)}</div></> : <div className="custom-form"><div className="emoji-row">{['🛒','🍞','🥚','🥛','🧀','🍎','👶','💧'].map(e => <button className={icon === e ? 'selected' : ''} key={e} onClick={() => setIcon(e)}>{e}</button>)}</div><input autoFocus className="big-input" placeholder="Örn. kahvaltılık zeytin" value={newItem} onChange={e => setNewItem(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} /><div className="form-row"><div className="stepper"><button onClick={() => setQty(String(Math.max(1, (Number(qty) || 1) - 1)))}><Minus size={16}/></button><b>{qty}</b><button onClick={() => setQty(String((Number(qty) || 1) + 1))}><Plus size={16}/></button></div><select value={cat} onChange={e => setCat(e.target.value)}>{cats.slice(1).map(c => <option key={c}>{c}</option>)}</select></div><button className="primary full add-btn" onClick={() => addItem()}>Listeye ekle <Plus size={18}/></button></div>}</div></div>
+  return <div className="overlay" onClick={close}><div className="sheet" onClick={e => e.stopPropagation()}><div className="grab"/><div className="sheet-head"><div><div className="eyebrow">HIZLI EKLE</div><h2>Listeye ne lazım?</h2><p>Grubu seç, ürüne bir kez dokun.</p></div><button className="round-close" onClick={close}><X size={19}/></button></div><div className="sheet-tabs"><button className={tab === 'popular' ? 'active' : ''} onClick={() => setTab('popular')}>Hızlı ekle</button><button className={tab === 'custom' ? 'active' : ''} onClick={() => setTab('custom')}>Kendim ekle</button></div>{tab === 'popular' ? <><div className="quick-cats">{quickCategories.map(c => <button key={c} className={quickCat === c ? 'active' : ''} onClick={() => setQuickCat(c)}>{c}</button>)}</div><div className="quick-grid">{filteredPresets.map((p, idx) => <button key={`${p[1]}-${idx}`} onClick={() => { addItem(p); close(); }}><span>{p[0]}</span><b>{p[1]}</b></button>)}</div></> : <div className="custom-form"><div className="emoji-row">{['🛒','🍞','🥚','🥛','🧀','🍎','👶','💧'].map(e => <button className={icon === e ? 'selected' : ''} key={e} onClick={() => setIcon(e)}>{e}</button>)}</div><input autoFocus className="big-input" placeholder="Örn. kahvaltılık zeytin" value={newItem} onChange={e => setNewItem(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} /><div className="form-row"><div className="stepper"><button onClick={() => setQty(String(Math.max(1, (Number(qty) || 1) - 1)))}><Minus size={16}/></button><b>{qty}</b><button onClick={() => setQty(String((Number(qty) || 1) + 1))}><Plus size={16}/></button></div><select value={cat} onChange={e => setCat(e.target.value)}>{cats.slice(1).map(c => <option key={c}>{c}</option>)}</select></div><button className="primary full add-btn" onClick={() => { addItem(); close(); }}>Listeye ekle <Plus size={18}/></button></div>}</div></div>
 }
 
 function HomeView({ house, members, code, onCopy, onLogout }) {
