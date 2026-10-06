@@ -173,7 +173,7 @@ function App() {
 
   async function addItem(preset, directName = null) {
     const productName = directName || preset?.[1] || newItem.trim()
-    if (!productName || !house || busy) return
+    if (!productName || !house) return
     vibrate(40)
     const finalCategory = preset?.[2] || (cat === 'Diğer' ? smartCategory(productName) : cat)
     const optimisticId = `temp-${Date.now()}-${Math.random()}`
@@ -186,12 +186,10 @@ function App() {
     // Ürün, Supabase cevabını beklemeden ekranda görünür.
     setItems(prev => [optimistic, ...prev])
     setNewItem(''); setQty('1');
-    setBusy(true)
     const { data, error } = await supabase.from('shopping_items').insert({
       household_id: house.id, name: productName, quantity: preset?.[3] || qty,
       icon: preset?.[0] || icon, category: finalCategory, added_by: session.user.id
     }).select().single()
-    setBusy(false)
     if (error) {
       setItems(prev => prev.filter(i => i.id !== optimisticId))
       notify(error.message)
