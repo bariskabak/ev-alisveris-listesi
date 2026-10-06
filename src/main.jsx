@@ -319,8 +319,6 @@ function App() {
             <div className="progress-circle"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="14"/><circle className="progress-value" style={{strokeDashoffset:87.9 - (87.9 * progress / 100)}} cx="18" cy="18" r="14"/></svg><b>{progress}%</b></div>
           </div>
 
-          <div className="quick-add-heading"><span>Hızlı ekle</span><small>Ne gerekiyorsa yaz</small></div><QuickAddInput onAdd={addItem} />
-
           <div className="section-head">
             <div><span className="section-kicker">BUGÜN</span><span className="section-title">Alışveriş listesi</span><span className="count">{visible.length}</span></div>
             {showBought && bought.length > 0 && <button className="text-action" onClick={() => setShowBought(false)}>Aktifleri göster</button>}
@@ -329,6 +327,8 @@ function App() {
           {visible.length === 0 ? <div className="empty"><div className="empty-icon"><PackagePlus size={28}/></div><h2>{search ? 'Bulamadım' : 'Liste boş'}</h2><p>{search ? 'Başka bir kelime dene.' : 'Yeni ürün ekleyerek başla.'}</p></div> : <div className="groups">{Object.entries(grouped).map(([category, list]) => <section className="group" key={category}><div className="group-title"><span>{(() => { const I = catIcons[category] || ShoppingBasket; return <I size={16}/> })()}</span>{category}<i>{list.length}</i></div><div className="grid-list">{list.map(item => <Item key={item.id} item={item} toggle={toggle} remove={remove}/>)}</div></section>)}</div>}
           
           {bought.length > 0 && <button className="clear-bought" onClick={clearBought}><RotateCcw size={15}/> Sepettekileri temizle <span>{bought.length}</span></button>}
+
+          <div className="quick-add-heading"><span>Hızlı ekle</span><small>Ürünü yaz ve sepete ekle</small></div><QuickAddInput onAdd={addItem} />
         </main>
       </> : <div className="content"><header className="topbar" style={{padding:'20px'}}><div className="brand"><h1>Evimiz</h1></div></header><HomeView house={house} members={members} code={house.invite_code} onCopy={() => { navigator.clipboard?.writeText(house.invite_code); notify('Ev kodu kopyalandı') }} onLogout={() => supabase.auth.signOut()} /></div>}
 
