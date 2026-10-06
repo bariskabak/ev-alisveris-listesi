@@ -288,7 +288,7 @@ function App() {
         <header className="main-header">
           <div className="header-top">
             <div className="location" onClick={() => setView('home')}>
-              <span className="eyebrow">Geçerli Ev</span>
+              <span className="eyebrow">ORTAK ALIŞVERİŞ</span>
               <strong><House size={14}/> {house.name || 'BİZİM EV'} <ChevronRight size={14}/></strong>
             </div>
             <button className="cart-btn" onClick={() => setShowBought(v => !v)}>
@@ -298,7 +298,7 @@ function App() {
           </div>
           <div className="searchbar">
             <Search size={18}/>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Ürün ara..." />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Listede ürün ara..." />
             {search && <button onClick={() => setSearch('')}><X size={16}/></button>}
           </div>
         </header>
@@ -315,14 +315,14 @@ function App() {
           </div>
 
           <div className="hero-compact">
-            <div><h2>{pending.length === 0 ? 'Her şey tamam!' : `${pending.length} ürün alınacak`}</h2><p>{pending.length ? `${bought.length} ürün sepette.` : 'Harika iş çıkardın.'}</p></div>
+            <div><div className="hero-label">SEPETİMİZ</div><h2>{pending.length === 0 ? 'Her şey tamam!' : `${pending.length} ürün bekliyor`}</h2><p>{pending.length ? `${bought.length} ürün alındı · hepiniz görebilirsiniz.` : 'Bugünkü alışveriş tamamlandı.'}</p></div>
             <div className="progress-circle"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="14"/><circle className="progress-value" style={{strokeDashoffset:87.9 - (87.9 * progress / 100)}} cx="18" cy="18" r="14"/></svg><b>{progress}%</b></div>
           </div>
 
-          <QuickAddInput onAdd={addItem} />
+          <div className="quick-add-heading"><span>Hızlı ekle</span><small>Ne gerekiyorsa yaz</small></div><QuickAddInput onAdd={addItem} />
 
           <div className="section-head">
-            <div><span className="section-title">Alışveriş listesi</span><span className="count">{visible.length}</span></div>
+            <div><span className="section-kicker">BUGÜN</span><span className="section-title">Alışveriş listesi</span><span className="count">{visible.length}</span></div>
             {showBought && bought.length > 0 && <button className="text-action" onClick={() => setShowBought(false)}>Aktifleri göster</button>}
           </div>
           
@@ -369,7 +369,7 @@ function Item({ item, toggle, remove }) {
       <span className="item-icon">{item.icon || '🛒'}</span>
       <div className="item-info"><strong>{item.name}</strong><small>{item.quantity && item.quantity !== '1' ? `× ${item.quantity} · ` : ''}{item.category}</small></div>
     </div>
-    <button className="check" onClick={() => toggle(item)} aria-label={item.is_bought ? 'Listeye geri al' : 'Sepete ekle'}>{item.is_bought ? <Check size={20}/> : <Plus size={20}/>}</button>
+    <button className="check" onClick={() => toggle(item)} aria-label={item.is_bought ? 'Listeye geri al' : 'Sepete ekle'}>{item.is_bought ? <><Check size={17}/><span>Alındı</span></> : <><Plus size={17}/><span>Sepete ekle</span></>}</button>
   </div>
 }
 
