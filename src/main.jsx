@@ -308,7 +308,7 @@ function App() {
             {cats.map(c => { 
               const Icon = catIcons[c] || ShoppingBasket; 
               return <button key={c} className={`cat-btn ${filter === c ? 'active' : ''}`} onClick={() => setFilter(c)}>
-                <div className="cat-icon">{c !== 'Hepsi' && <Icon size={22}/>}</div>
+                <div className="cat-icon"><Icon size={22}/></div>
                 <span>{c}</span>
               </button> 
             })}
