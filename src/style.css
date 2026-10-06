@@ -389,3 +389,221 @@ body{background:var(--shop-bg);color:var(--shop-text)}
 @media(min-width:521px){
   .app{box-shadow:0 0 50px rgba(23,50,71,.08);min-height:100vh}
 }
+
+/* FINAL REFERENCE UI — compact grocery shopping app */
+body{background:#e8edf0;color:#173247}
+.app-shell{background:#e8edf0}
+.app{
+  max-width:520px;
+  background:#e8edf0;
+  padding-bottom:calc(106px + env(safe-area-inset-bottom));
+}
+/* Header: one clean row, basket stays on the right */
+.main-header{
+  margin:0 -14px 12px;
+  padding:calc(16px + env(safe-area-inset-top)) 18px 18px;
+  background:#173e5f;
+  border-radius:0 0 28px 28px;
+  box-shadow:0 12px 26px rgba(15,48,76,.20);
+  position:relative;
+}
+.header-top{
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:12px;
+  margin-bottom:15px;
+}
+.location{min-width:0;flex:1}
+.location strong{
+  display:flex;align-items:center;gap:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cart-btn{flex:none!important;margin:0!important;display:grid!important;place-items:center!important}
+/* Categories become the compact 6-column grid from the reference */
+.categories-scroll{
+  display:grid!important;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:8px 7px!important;
+  margin:0 0 15px!important;
+  padding:0!important;
+  overflow:visible!important;
+}
+.cat-btn{
+  width:100%!important;
+  min-width:0!important;
+  gap:5px!important;
+  color:#6e7e88;
+}
+.cat-icon{
+  width:100%!important;
+  height:auto!important;
+  aspect-ratio:1/1;
+  max-width:64px;
+  margin:0 auto;
+  border-radius:17px!important;
+  box-shadow:0 4px 12px rgba(23,50,71,.07)!important;
+}
+.cat-btn span{
+  display:block;
+  min-height:24px;
+  line-height:1.08;
+  font-size:9px!important;
+  text-align:center;
+}
+.cat-btn.active .cat-icon{
+  background:#173e5f!important;
+  color:#fff!important;
+  border-color:#173e5f!important;
+}
+.cat-btn.active span{color:#173e5f!important}
+/* Compact cart summary, not a giant dashboard hero */
+.hero-compact{
+  min-height:0!important;
+  height:82px!important;
+  padding:13px 15px!important;
+  margin:0 0 17px!important;
+  border-radius:18px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  overflow:hidden!important;
+}
+.hero-compact h2{font-size:17px!important;line-height:1.1!important}
+.hero-compact p{font-size:9px!important;line-height:1.3!important;max-width:240px}
+.hero-label{font-size:8px!important}
+.progress-circle,.progress-circle svg{width:52px!important;height:52px!important;flex:none}
+.progress-circle b{font-size:9px!important}
+/* Cart/list is the hero of the app */
+.section-head{
+  margin:0 2px 8px!important;
+}
+.section-head>div{gap:6px}
+.section-kicker{font-size:8px}
+.section-title{font-size:15px!important;font-weight:900}
+.grid-list{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:9px!important;
+}
+.group{gap:7px!important;margin-bottom:12px}
+.group-title{
+  font-size:9px!important;
+  color:#687984!important;
+}
+.item{
+  min-height:176px!important;
+  border-radius:18px!important;
+  padding:11px 9px 9px!important;
+  background:#fff!important;
+  border:1px solid #dbe2e6!important;
+  box-shadow:0 6px 16px rgba(23,50,71,.06)!important;
+}
+.item-body{gap:7px!important}
+.item-icon{
+  width:66px!important;height:66px!important;
+  border-radius:17px!important;
+  font-size:38px!important;
+}
+.item-info strong{font-size:13px!important}
+.item-info small{font-size:8px!important}
+.item .check{
+  height:34px!important;
+  border-radius:10px!important;
+  background:#edf1f3!important;
+  color:#53636e!important;
+}
+.item.bought .check{background:#173e5f!important}
+.item .delete{width:25px!important;height:25px!important;top:6px!important;right:6px!important}
+/* Add field is intentionally secondary, like the reference's shopping flow */
+.quick-add-heading{
+  margin:15px 2px 7px!important;
+}
+.quick-add-heading span{font-size:13px!important}
+.quick-add-heading small{font-size:9px!important}
+.quick-add-wrap{
+  height:50px!important;
+  margin:0 0 8px!important;
+  border-radius:15px!important;
+}
+.quick-add-wrap button{
+  background:#ffb51b!important;
+  color:#173247!important;
+}
+/* Bottom bar */
+.bottom-nav{
+  width:calc(100% - 28px)!important;
+  height:66px!important;
+  bottom:calc(9px + env(safe-area-inset-bottom))!important;
+  background:rgba(255,255,255,.96)!important;
+  border:1px solid #d8e0e4!important;
+  border-radius:22px!important;
+  box-shadow:0 12px 32px rgba(23,50,71,.16)!important;
+}
+.bottom-nav>button{color:#89969e!important}
+.bottom-nav>button.active{color:#173e5f!important}
+.bottom-nav .nav-add{
+  width:48px!important;height:48px!important;
+  background:#ffb51b!important;color:#173247!important;
+  border-radius:16px!important;
+  box-shadow:0 7px 18px rgba(255,181,27,.32)!important;
+}
+/* Add sheet — same visual language */
+.sheet{
+  background:#f5f7f8!important;
+  border-radius:25px 25px 0 0!important;
+  padding:8px 14px calc(18px + env(safe-area-inset-bottom))!important;
+}
+.sheet-head{padding:7px 2px 11px!important}
+.sheet-head h2{color:#173247!important}
+.sheet-tabs{background:#dfe5e8!important}
+.sheet-tabs button.active{color:#173e5f!important}
+.quick-cats{
+  gap:6px!important;
+  padding:2px 1px 10px!important;
+}
+.quick-cats button{
+  border-color:#d5dde1!important;
+  background:#fff!important;
+  color:#5f707a!important;
+}
+.quick-cats button.active{
+  background:#173e5f!important;
+  color:#fff!important;
+  border-color:#173e5f!important;
+}
+.quick-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:8px!important;
+}
+.quick-grid button{
+  min-height:76px!important;
+  border-radius:15px!important;
+  background:#fff!important;
+  border:1px solid #dbe2e6!important;
+}
+.quick-grid span{font-size:25px!important}
+.quick-grid b{font-size:9px!important}
+.custom-form{gap:9px!important}
+.big-input,.form-row select,.stepper{
+  background:#fff!important;
+  border-color:#d7dfe3!important;
+}
+.primary{background:#173e5f!important}
+.add-btn{height:48px!important}
+/* Home */
+.home-view{padding-top:5px}
+.home-hero,.member-card{
+  background:#fff!important;
+  border:1px solid #dbe2e6!important;
+}
+.code-card{background:#173e5f!important}
+/* Small screens: retain 6 categories and 2 product columns */
+@media(max-width:380px){
+  .categories-scroll{gap:7px 5px!important}
+  .cat-btn span{font-size:8px!important}
+  .item{min-height:164px!important}
+  .item-icon{width:60px!important;height:60px!important;font-size:34px!important}
+}
+@media(min-width:521px){
+  .app{box-shadow:0 0 50px rgba(23,50,71,.08);min-height:100vh}
+}
