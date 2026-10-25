@@ -93,6 +93,7 @@ function App() {
   const [authMode, setAuthMode] = useState('login')
   const [recoveryMode, setRecoveryMode] = useState(() => new URLSearchParams(window.location.search).get('reset') === '1' || window.location.hash.includes('type=recovery'))
   const [msg, setMsg] = useState('')
+  const [resetSent, setResetSent] = useState(false)
   const [code, setCode] = useState('')
   const [toast, setToast] = useState('')
   const [busy, setBusy] = useState(false)
@@ -203,27 +204,40 @@ function App() {
   async function auth() {
     setMsg('')
     if (!email.trim() || !password) return setMsg('E-posta ve şifre gerekli.')
-    if (authMode === 'signup') {
-      const r = await supabase.auth.signUp({ email: email.trim(), password })
-      if (r.error) setMsg(r.error.message)
-      else setMsg('Hesap oluşturuldu. E-postanı doğruladıysan giriş yapabilirsin.')
-    } else {
-      const r = await supabase.auth.signInWithPassword({ email: email.trim(), password })
-      if (r.error) setMsg(r.error.message)
+    try {
+      if (authMode === 'signup') {
+        const r = await supabase.auth.signUp({ email: email.trim(), password })
+        if (r.error) setMsg(r.error.message)
+        else setMsg('Hesap oluşturuldu. E-postanı doğruladıysan giriş yapabilirsin.')
+      } else {
+        const r = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+        if (r.error) setMsg(r.error.message)
+      }
+    } catch (e) {
+      setMsg(e?.message || 'Giriş sırasında bir hata oluştu.')
     }
   }
 
   async function sendReset() {
     setMsg('')
-    if (!email.trim()) return setMsg('Önce e-posta adresini yaz.')
+    setResetSent(false)
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail) return setMsg('Önce e-posta adresini yaz.')
     setBusy(true)
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim())
-    setBusy(false)
-    if (error) {
-      setMsg(error.message)
-      return
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail)
+      if (error) {
+        setMsg(error.message || error.error_description || `Şifre yenileme isteği başarısız oldu. Kod: ${error.status || 'bilinmiyor'}`)
+        return
+      }
+      setResetSent(true)
+      setMsg('Şifre yenileme bağlantısı gönderildi. Gelen kutunu ve spam klasörünü kontrol et.')
+    } catch (e) {
+      const detail = e?.message || e?.error_description || e?.toString?.() || 'Bilinmeyen hata'
+      setMsg(`Şifre yenileme isteği başarısız: ${detail}`)
+    } finally {
+      setBusy(false)
     }
-    setMsg('Bağlantı e-posta adresine gönderildi. Gelen kutunu ve spam klasörünü kontrol et.')
   }
 
   async function updatePassword() {
@@ -231,13 +245,18 @@ function App() {
     if (password.length < 6) return setMsg('Şifre en az 6 karakter olmalı.')
     if (password !== passwordConfirm) return setMsg('Şifreler aynı değil.')
     setBusy(true)
-    const { error } = await supabase.auth.updateUser({ password })
-    setBusy(false)
-    if (error) { setMsg(error.message); return }
-    await supabase.auth.signOut()
-    setPassword(''); setPasswordConfirm(''); setRecoveryMode(false); setAuthMode('login')
-    setMsg('Şifren başarıyla yenilendi. Yeni şifrenle giriş yapabilirsin.')
-    window.history.replaceState({}, document.title, window.location.pathname)
+    try {
+      const { error } = await supabase.auth.updateUser({ password })
+      if (error) { setMsg(error.message); return }
+      await supabase.auth.signOut()
+      setPassword(''); setPasswordConfirm(''); setRecoveryMode(false); setAuthMode('login')
+      setMsg('Şifren başarıyla yenilendi. Yeni şifrenle giriş yapabilirsin.')
+      window.history.replaceState({}, document.title, window.location.pathname)
+    } catch (e) {
+      setMsg(e?.message || 'Şifre güncellenirken bir hata oluştu.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function createHome() {
@@ -263,7 +282,7 @@ function App() {
   const grouped = useMemo(() => visible.reduce((acc, item) => { ;(acc[item.category || 'Diğer'] ??= []).push(item); return acc }, {}), [visible])
 
   if (recoveryMode) return <ResetPasswordView password={password} setPassword={setPassword} passwordConfirm={passwordConfirm} setPasswordConfirm={setPasswordConfirm} onSubmit={updatePassword} onBack={() => { setRecoveryMode(false); window.history.replaceState({}, document.title, window.location.pathname) }} msg={msg} busy={busy} />
-  if (!session) return <Auth email={email} setEmail={setEmail} password={password} setPassword={setPassword} mode={authMode} setMode={setAuthMode} onAuth={auth} onForgot={() => { setMsg(''); setAuthMode('reset') }} msg={msg} onReset={sendReset} busy={busy} />
+  if (!session) return <Auth email={email} setEmail={setEmail} password={password} setPassword={setPassword} mode={authMode} setMode={setAuthMode} onAuth={auth} onForgot={() => { setMsg(''); setResetSent(false); setAuthMode('reset') }} msg={msg} resetSent={resetSent} onReset={sendReset} busy={busy} />
   if (loading) return <div className="splash"><div className="splash-logo"><ShoppingBasket /></div><b>Ev Listesi</b><span>Hazırlanıyor…</span></div>
   if (!house) return <div className="center"><div className="setup"><div className="setup-icon"><ShoppingBasket /></div><div className="eyebrow">ORTAK ALIŞVERİŞ</div><h1>Ev Listesi</h1><p>Üç kişinin aynı listeyi anında görüp kullanabileceği sade alışveriş uygulaman.</p><input placeholder="Adın" value={name} onChange={e => setName(e.target.value)} /><button className="primary full" disabled={busy} onClick={createHome}>{busy ? 'Oluşturuluyor…' : 'Yeni ev oluştur'} {!busy && <ChevronRight size={18}/>}</button><div className="or"><span>veya</span></div><input placeholder="Ev kodu · A1B2C3" value={code} onChange={e => setCode(e.target.value.toUpperCase())} /><button className="soft full" disabled={busy || !code.trim()} onClick={joinHome}>Mevcut eve katıl</button>{msg && <p className="error">{msg}</p>}<button className="link" onClick={() => supabase.auth.signOut()}>Çıkış yap</button></div></div>
 
@@ -279,6 +298,6 @@ function Item({ item, toggle, remove }) { return <div className={`item ${item.is
 function AddSheet({ presets, newItem, setNewItem, qty, setQty, cat, setCat, icon, setIcon, addItem, close }) { const [tab, setTab] = useState('popular'); const [quickCat, setQuickCat] = useState('Meyve & Sebze'); const quickCategories = cats.filter(c => c !== 'Hepsi' && c !== 'Diğer'); const filteredPresets = presets.filter(p => p[2] === quickCat); return <div className="overlay" onClick={close}><div className="sheet" onClick={e => e.stopPropagation()}><div className="grab"/><div className="sheet-head"><div><div className="eyebrow">HIZLI EKLE</div><h2>Listeye ne lazım?</h2><p>Grubu seç, ürüne bir kez dokun.</p></div><button className="round-close" onClick={close}><X size={19}/></button></div><div className="sheet-tabs"><button className={tab === 'popular' ? 'active' : ''} onClick={() => setTab('popular')}>Hızlı ekle</button><button className={tab === 'custom' ? 'active' : ''} onClick={() => setTab('custom')}>Kendim ekle</button></div>{tab === 'popular' ? <><div className="quick-cats">{quickCategories.map(c => <button key={c} className={quickCat === c ? 'active' : ''} onClick={() => setQuickCat(c)}>{c}</button>)}</div><div className="quick-grid">{filteredPresets.map((p, idx) => <button key={`${p[1]}-${idx}`} onClick={() => addItem(p)}><span>{p[0]}</span><b>{p[1]}</b></button>)}</div></> : <div className="custom-form"><div className="emoji-row">{['🛒','🍞','🥚','🥛','🧀','🍎','👶','💧'].map(e => <button className={icon === e ? 'selected' : ''} key={e} onClick={() => setIcon(e)}>{e}</button>)}</div><input autoFocus className="big-input" placeholder="Örn. kahvaltılık zeytin" value={newItem} onChange={e => setNewItem(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }} /><div className="form-row"><div className="stepper"><button onClick={() => setQty(String(Math.max(1, (Number(qty) || 1) - 1)))}><Minus size={16}/></button><b>{qty}</b><button onClick={() => setQty(String((Number(qty) || 1) + 1))}><Plus size={16}/></button></div><select value={cat} onChange={e => setCat(e.target.value)}>{cats.slice(1).map(c => <option key={c}>{c}</option>)}</select></div><button className="primary full add-btn" onClick={() => addItem()}>Listeye ekle <Plus size={18}/></button></div>}</div></div> }
 function HomeView({ house, members, code, onCopy, onLogout }) { return <main className="home-view"><section className="home-hero"><div className="home-icon"><Users size={25}/></div><div><div className="eyebrow">EVİMİZ</div><h2>{house.name || 'Bizim Ev'}</h2><p>{members.length} kişi birlikte kullanıyor</p></div></section><div className="code-card"><div><span>DAVET KODU</span><strong>{code}</strong><small>Diğer kişilere göndererek aynı listeye bağla.</small></div><button onClick={onCopy}><Copy size={17}/> Kopyala</button></div><section className="member-card"><div className="section-title">Evde olanlar</div>{members.map((m, index) => <div className="member-row" key={m.user_id}><div className="member-avatar">{(m.name || 'Ü').slice(0, 1).toUpperCase()}</div><div><b>{m.name || 'Üye'}</b><small>{index === 0 ? 'Ev sahibi' : 'Üye'}</small></div><CircleCheck size={18}/></div>)}</section><button className="logout" onClick={onLogout}><LogOut size={17}/> Çıkış yap</button></main> }
 function ResetPasswordView({ password, setPassword, passwordConfirm, setPasswordConfirm, onSubmit, onBack, msg, busy }) { return <div className="auth-screen"><div className="auth-card"><div className="auth-logo"><ShoppingBasket size={27}/></div><span className="eyebrow">EVİNİZİN LİSTESİ</span><h1>Yeni <em>şifreni</em> belirle.</h1><p>Hesabın için yeni ve güvenli bir şifre oluştur.</p><input type="password" autoFocus placeholder="Yeni şifre" value={password} onChange={e => setPassword(e.target.value)} /><input type="password" placeholder="Yeni şifre tekrar" value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} /><button className="primary full auth-btn" disabled={busy} onClick={onSubmit}>{busy ? 'Güncelleniyor…' : 'Şifreyi güncelle'} <ChevronRight size={18}/></button>{msg && <div className="error">{msg}</div>}<button className="link" onClick={onBack}>← Giriş ekranına dön</button></div></div> }
-function Auth({ email, setEmail, password, setPassword, mode, setMode, onAuth, msg, onForgot, onReset, busy }) { return <div className="auth-screen"><div className="auth-card"><div className="auth-logo"><ShoppingBasket size={27}/></div><span className="eyebrow">EVİNİZİN LİSTESİ</span>{mode === 'reset' ? <><h1>Şifreni <em>yenile.</em></h1><p>Hesabına kayıtlı e-posta adresini yaz. Sana güvenli bir şifre yenileme bağlantısı gönderelim.</p><input type="email" autoFocus placeholder="E-posta" value={email} onChange={e => setEmail(e.target.value)} /><button className="primary full auth-btn" disabled={busy} onClick={onReset}>{busy ? 'Gönderiliyor…' : 'Şifre yenileme bağlantısı gönder'} <ChevronRight size={18}/></button>{msg && <div className="error">{msg}</div>}<button className="link" onClick={() => { setMode('login'); }} >← Giriş ekranına dön</button></> : <><h1>Alışverişi<br/><em>birlikte</em> yönetin.</h1><p>Telefonundan ekle, markette sepete at. Üçünüz aynı listeyi anında görün.</p><input type="email" placeholder="E-posta" value={email} onChange={e => setEmail(e.target.value)} /><input type="password" placeholder="Şifre" value={password} onChange={e => setPassword(e.target.value)} /><button className="primary full auth-btn" onClick={onAuth}>{mode === 'login' ? 'Giriş yap' : 'Hesap oluştur'} <ChevronRight size={18}/></button>{mode === 'login' && <button className="link" onClick={onForgot}>Şifremi unuttum</button>}{msg && <div className="error">{msg}</div>}<button className="link" onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}>{mode === 'login' ? 'İlk kez kullanıyorum → hesap oluştur' : '← Giriş yap'}</button></>}</div></div> }
+function Auth({ email, setEmail, password, setPassword, mode, setMode, onAuth, msg, resetSent, onForgot, onReset, busy }) { return <div className="auth-screen"><div className="auth-card"><div className="auth-logo"><ShoppingBasket size={27}/></div><span className="eyebrow">EVİNİZİN LİSTESİ</span>{mode === 'reset' ? <><h1>Şifreni <em>yenile.</em></h1><p>Hesabına kayıtlı e-posta adresini yaz. Sana güvenli bir şifre yenileme bağlantısı gönderelim.</p><input type="email" autoFocus placeholder="E-posta" value={email} onChange={e => { setEmail(e.target.value); }} /><button className="primary full auth-btn" disabled={busy || resetSent} onClick={onReset}>{busy ? 'Gönderiliyor…' : resetSent ? 'Bağlantı gönderildi ✓' : 'Şifre yenileme bağlantısı gönder'} <ChevronRight size={18}/></button>{msg && <div className={resetSent ? 'success' : 'error'}>{msg}</div>}<button className="link" onClick={() => { setMode('login') }} >← Giriş ekranına dön</button></> : <><h1>Alışverişi<br/><em>birlikte</em> yönetin.</h1><p>Telefonundan ekle, markette sepete at. Üçünüz aynı listeyi anında görün.</p><input type="email" placeholder="E-posta" value={email} onChange={e => setEmail(e.target.value)} /><input type="password" placeholder="Şifre" value={password} onChange={e => setPassword(e.target.value)} /><button className="primary full auth-btn" onClick={onAuth}>{mode === 'login' ? 'Giriş yap' : 'Hesap oluştur'} <ChevronRight size={18}/></button>{mode === 'login' && <button className="link" onClick={onForgot}>Şifremi unuttum</button>}{msg && <div className="error">{msg}</div>}<button className="link" onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}>{mode === 'login' ? 'İlk kez kullanıyorum → hesap oluştur' : '← Giriş yap'}</button></>}</div></div> }
 
 createRoot(document.getElementById('root')).render(<App />)
